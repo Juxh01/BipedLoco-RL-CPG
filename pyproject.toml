@@ -26,7 +26,6 @@ dependencies = [
     "tensorboard",
     "hydra-core",
     "hydra-submitit-launcher",
-    "hydra-ray-launcher",
     "hydra-colorlog",
     "omegaconf",
     "rliable",
