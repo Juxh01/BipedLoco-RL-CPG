@@ -6,11 +6,12 @@ agent:
   learning_rate: 0.0003
   n_steps: 4096
   batch_size: 64
-  n_epochs: 10
+  n_epochs: 5
   gamma: 0.99
   gae_lambda: 0.95
   clip_range: 0.2
 
 train:
-  num_frames:     20000   # total env steps
+  num_frames:     10000   # total env steps
   eval_interval:  1000    # print avg reward every this many episodes
+  

@@ -1,24 +1,32 @@
+import os
+os.environ["MUJOCO_GL"] = "glfw"
+
+
 import gymnasium as gym
 import numpy as np
 import hydra
 from omegaconf import DictConfig
 from pathlib import Path
-import os
 import shutil
 from datetime import datetime
 from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.env_util import make_vec_env
 
+from myosuite.utils import gym
 
 import time
+timestamp_load = None
+
 
 def play():
+    #Geht bi mir (Max) nur mit nvidia: __NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia python source/experiments/exp.py
+
     # Einzelne Env (kein VecEnv)
-    env = gym.make("Walker2d-v5", render_mode="human")
+    env = gym.make("myoLegWalk-v0", reset_type='random')
 
     # Modell laden (achte auf die .zip-Endung)
-    model = PPO.load("ppo_walker.zip")
+    model = PPO.load("ppo_walker.zip", device = "cpu")
 
     obs, _ = env.reset()
     while True:
@@ -27,7 +35,8 @@ def play():
         obs, reward, terminated, truncated, info = env.step(action)
 
         # Render ruft der Env-Treiber selbst auf, aber explizit geht auch:
-        env.render()
+        env.unwrapped.mj_render()
+
 
         if terminated or truncated:
             obs, _ = env.reset()
@@ -39,12 +48,13 @@ CONFIG_DIR = Path(__file__).parents[2] / "configs"
 def main(cfg: DictConfig) -> float:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    # Parallel environments
-    vec_env = make_vec_env('Walker2d-v5', n_envs=12,)
-    
+    # environments
+    #env = gym.make('myoLegWalk-v0', reset_type='random')
+    env = make_vec_env('myoLegWalk-v0', n_envs=12)
+
     # Instantiate the agent
     model = PPO("MlpPolicy",
-                vec_env,
+                env,
                 device = "cpu",
                 learning_rate = cfg.agent.learning_rate,
                 n_steps = cfg.agent.n_steps,
@@ -54,14 +64,19 @@ def main(cfg: DictConfig) -> float:
                 gae_lambda = cfg.agent.gae_lambda,
                 clip_range = cfg.agent.clip_range,
                 verbose=1)
+    
+    if timestamp_load is not None:
+        load_dir =os.path.join(hydra.utils.get_original_cwd(),"RAW_Data",timestamp_load,"models",f"model_{timestamp_load}.zip")
+        model = PPO.load(load_dir, env = env, device = "cpu")
+    
     # Train the agent and display a progress bar
-    model.learn(total_timesteps=int(cfg.train.num_frames), progress_bar=True, )
+    model.learn(total_timesteps=int(cfg.train.num_frames), progress_bar=True)
     # Save the agent
     model.save("ppo_walker")
 
     working_dir =os.path.join(hydra.utils.get_original_cwd(),"RAW_Data",timestamp)
     training_data_dir = os.path.join(working_dir, "training_data")
-    model_dir = os.path.join( working_dir, "models" )
+    model_dir = os.path.join(working_dir, "models")
 
     os.makedirs(working_dir, exist_ok=True)
     os.makedirs(training_data_dir, exist_ok=True)
@@ -84,6 +99,7 @@ def main(cfg: DictConfig) -> float:
     print(f"Modell gespeichert unter: {save_path}")
 
     mean_reward, std_reward = evaluate_policy(model, model.get_env(), n_eval_episodes=10)
+    print(f"mean reward: {mean_reward}, std reward: {std_reward}")
     play()
 
 

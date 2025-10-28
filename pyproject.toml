@@ -36,6 +36,10 @@ dependencies = [
     "shimmy[dm-control]",
     "stable-baselines3",
     "scipy",
+    "mujoco >= 2.3.6",
+    "myosuite",
+    "deprl",
+
 ]
 
 [project.optional-dependencies]
