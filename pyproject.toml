@@ -38,6 +38,7 @@ dependencies = [
     "mujoco >= 2.3.6",
     "myosuite",
     "deprl",
+    "opencv-python",
 ]
 
 [project.optional-dependencies]
@@ -50,7 +51,13 @@ dev = ["pytest>=4.6",
     "isort"]
 
 [tool.setuptools]
-packages = ["source"]
+packages = ["source", "rl_train", "myoassist_utils", "ctrl_optim"]
+
+[tool.setuptools.package-dir]
+source = "source"
+rl_train = "source/environments/myoassist/rl_train"
+myoassist_utils = "source/environments/myoassist/myoassist_utils"
+ctrl_optim = "source/environments/myoassist/ctrl_optim"
 
 [tool.isort]
 py_version = "38"

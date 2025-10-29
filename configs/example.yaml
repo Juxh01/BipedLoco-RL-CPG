@@ -1,17 +1,81 @@
 # Example configuration file for BipedLoco-PPO-CPG
 
-seed: 0
+total_timesteps: 3.0e+7
+evaluate_param_list:
+  - num_timesteps: 200
+    min_target_velocity: 1.25
+    max_target_velocity: 1.25
+    target_velocity_period: 2
+    velocity_mode: UNIFORM
+    cam_type: follow
+    cam_distance: 2.5
+    visualize_activation: true
+logger_params:
+  logging_frequency: 8
+env:
+  env_id: "myoAssistLeg-v0"
+  num_envs: 1
+  seed: 10
+  model_path: "models/26muscle_3D/myoLeg26_BASELINE.xml"
+  render: false
+  is_evaluate_mode: False
+  env_params:
+    safe_height: 0.7
+    out_of_trajectory_threshold: 0.2
+    flag_random_ref_index: true
+    control_framerate: 30
+    physics_sim_framerate: 1200
+    min_target_velocity: 1.25
+    max_target_velocity: 1.25
+    min_target_velocity_period: 2
+    max_target_velocity_period: 10
+    enable_lumbar_joint: false
+    lumbar_joint_fixed_angle: -0.13
+    lumbar_joint_damping_value: 0.05
+    observation_joint_pos_keys:
+      - ankle_angle_l
+      - ankle_angle_r
+      - hip_flexion_l
+      - hip_flexion_r
+      - knee_angle_l
+      - knee_angle_r
+      - pelvis_tilt
+      - pelvis_ty
+    observation_joint_vel_keys:
+      - ankle_angle_l
+      - ankle_angle_r
+      - hip_flexion_l
+      - hip_flexion_r
+      - knee_angle_l
+      - knee_angle_r
+      - pelvis_tilt
+      - pelvis_tx
+      - pelvis_ty
+    observation_sensor_keys:
+      - r_foot
+      - l_foot
+      - r_toes
+      - l_toes
+    joint_limit_sensor_keys:
+      - r_knee_sensor
+      - l_knee_sensor
+      - r_hip_sensor
+      - l_hip_sensor
+      - r_ankle_sensor
+      - l_ankle_sensor
+      - r_mtp_sensor
+      - l_mtp_sensor
+    terrain_type: flat
+    reward_keys_and_weights:
+      end_effector_imitation_reward: 0.0
+      forward_reward: 1.0
+      muscle_activation_penalty: 0.1
+      muscle_activation_diff_penalty: 0.1
+      footstep_delta_time: 0.0
+      average_velocity_per_step: 0.0
+      muscle_activation_penalty_per_step: 0.01
+      joint_constraint_force_penalty: 1.0
+      foot_force_penalty: 0.5
+    custom_max_episode_steps: 1000
+    
 
-agent:
-  learning_rate: 0.0003
-  n_steps: 4096
-  batch_size: 64
-  n_epochs: 5
-  gamma: 0.99
-  gae_lambda: 0.95
-  clip_range: 0.2
-
-train:
-  num_frames:     10000   # total env steps
-  eval_interval:  1000    # print avg reward every this many episodes
-  
