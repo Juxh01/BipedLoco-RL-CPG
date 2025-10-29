@@ -122,12 +122,6 @@ def _make_single_env(env_cfg: Dict[str, Any]):
         "is_evaluate_mode": bool(env_cfg.get("is_evaluate_mode", False)),
     }
 
-    # Optional: frühe Validierung
-    try:
-        gym.spec(env_id)
-    except Exception as e:
-        print(f"[EnvRegistry] ID '{env_id}' nicht registriert: {e}")
-
     env = gym.make(env_id, **gym_make_args).unwrapped
 
     if bool(env_cfg.get("render", False)):
