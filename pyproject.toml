@@ -68,6 +68,7 @@ sections = [
     "LOCALFOLDER",
 ] # section ordering
 multi_line_output = 3 # https://pycqa.github.io/isort/docs/configuration/multi_line_output_modes.html
+skip = ["source/environments/myoassist/"]
 
 [tool.pydocstyle]
 convention = "numpy"
@@ -89,7 +90,7 @@ add-ignore = [# http://www.pydocstyle.org/en/stable/error_codes.html
 ]
 
 [tool.ruff]
-extend-exclude = []
+extend-exclude = ["source/environments/myoassist/"]
 
 [tool.ruff.lint]
 ignore = [
