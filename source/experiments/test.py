@@ -15,7 +15,24 @@ def main(cfg: DictConfig) -> float:
     print(f"Initial observation: {obs}")
     print(f"Environment Obs: {env.observation_space}")
     print(f"Environment Act: {env.action_space}")
+
+
+    while True:
+            # deterministic=True für stabilere Demo
+            action = env.action_space.sample()
+            obs, reward, terminated, truncated, info = env.step(action)
+
+            # Render ruft der Env-Treiber selbst auf, aber explizit geht auch:
+            env.unwrapped.mj_render()
+
+            if terminated or truncated:
+                obs, _ = env.reset()
+
+
     return 0.0
+
+
+
 
 
 if __name__ == "__main__":
