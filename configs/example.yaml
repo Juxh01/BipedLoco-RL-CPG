@@ -14,10 +14,11 @@ logger_params:
   logging_frequency: 8
 env:
   env_id: "myoAssistLeg-v0"
-  num_envs: 1
+  num_envs: 8
   seed: 10
   model_path: "models/26muscle_3D/myoLeg26_BASELINE.xml"
   render: false
+  log_dir: "./runs"
   is_evaluate_mode: False
   env_params:
     safe_height: 0.7
@@ -41,6 +42,17 @@ env:
       - knee_angle_r
       - pelvis_tilt
       - pelvis_ty
+      # New 
+      - mtp_angle_l
+      - mtp_angle_r
+      - hip_adduction_l
+      - hip_adduction_r
+      - hip_rotation_l
+      - hip_rotation_r
+      - pelvis_tx
+      - pelvis_tz
+      - pelvis_list
+      - pelvis_rotation
     observation_joint_vel_keys:
       - ankle_angle_l
       - ankle_angle_r
@@ -51,11 +63,30 @@ env:
       - pelvis_tilt
       - pelvis_tx
       - pelvis_ty
+      # New
+      - mtp_angle_l
+      - mtp_angle_r
+      - hip_adduction_l
+      - hip_adduction_r
+      - hip_rotation_l
+      - hip_rotation_r
+      - pelvis_tz
+      - pelvis_list
+      - pelvis_rotation
     observation_sensor_keys:
       - r_foot
       - l_foot
       - r_toes
       - l_toes
+      # New
+      - r_knee_sensor
+      - l_knee_sensor
+      - r_hip_sensor
+      - l_hip_sensor
+      - r_ankle_sensor
+      - l_ankle_sensor
+      - r_mtp_sensor
+      - l_mtp_sensor
     joint_limit_sensor_keys:
       - r_knee_sensor
       - l_knee_sensor

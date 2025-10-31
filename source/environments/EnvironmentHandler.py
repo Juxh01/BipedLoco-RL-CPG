@@ -154,8 +154,10 @@ def _make_vec_env(env_cfg: Dict[str, Any], num_envs: int):
             # Prepare env cfg and create env
             cfg = copy.deepcopy(env_cfg)
             cfg["seed"] = seed
-            cfg["render"] = False
-            cfg["log_dir"] = False
+            if cfg.get("render"):
+                cfg["render"] = False
+            if cfg.get("log_dir"):
+                cfg["log_dir"] = False
             env = _make_single_env(cfg)
 
             if hasattr(env, "action_space") and hasattr(env.action_space, "seed"):
