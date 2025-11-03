@@ -27,7 +27,8 @@ def main(cfg: DictConfig) -> float:
     )
     print(f"mean reward: {mean_reward}, std reward: {std_reward}")
 
-    while True:
+
+"""     while True:
         # deterministic=True für stabilere Demo
         action = env.action_space.sample()
         obs, _, terminated, truncated, _ = env.step(action)
@@ -37,8 +38,8 @@ def main(cfg: DictConfig) -> float:
 
         if terminated or truncated:
             obs, _ = env.reset()
-
-    # return 0.0
+ """
+# return 0.0
 
 
 if __name__ == "__main__":
