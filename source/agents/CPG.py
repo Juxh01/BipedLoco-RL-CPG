@@ -484,6 +484,7 @@ class TwoLayerCPG:
         return I_syn
 
     # ---------- Output mapping ----------
+    # TODO: Make this more efficient
     def cpg_to_muscle_activation(self) -> np.ndarray:
         """
         Map PF activities to 26 muscle activations in [0,1] using anatomical grouping and

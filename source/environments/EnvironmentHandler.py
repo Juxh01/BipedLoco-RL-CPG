@@ -21,6 +21,7 @@ from stable_baselines3 import PPO, SAC
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
+from source.environments.CPG_wrapper import CPGWrapper
 from source.environments.myoassist.rl_train.train.train_configs.config import (
     TrainSessionConfigBase,
 )
@@ -122,7 +123,7 @@ def _make_single_env(env_cfg: Dict[str, Any]):
         "is_evaluate_mode": bool(env_cfg.get("is_evaluate_mode", False)),
     }
 
-    env = gym.make(env_id, **gym_make_args).unwrapped
+    env = gym.make(env_id, **gym_make_args).unwrapped  # type: ignore[call-arg]
 
     if bool(env_cfg.get("render", False)):
         setattr(env, "mujoco_render_frames", True)
@@ -131,6 +132,19 @@ def _make_single_env(env_cfg: Dict[str, Any]):
     if log_dir:
         os.makedirs(log_dir, exist_ok=True)
         env = Monitor(env, filename=os.path.join(log_dir, "monitor.csv"))
+
+    # Optionally wrap with CPG controller (default: True to expose low-dim RL action space)
+    if bool(env_cfg.get("use_cpg_wrapper", True)):
+        # Substeps based on control rate for stability (e.g., 10 per control step)
+        control_fps = getattr(env, "control_framerate", None)
+        cpg_substeps = 10
+        try:
+            cpg_substeps = max(
+                1, int(env.model.opt.timestep * env.frame_skip * control_fps)
+            )  # type: ignore
+        except Exception:
+            pass
+        env = CPGWrapper(env, cpg_substeps=cpg_substeps)
 
     return env
 
@@ -171,7 +185,7 @@ def _make_vec_env(env_cfg: Dict[str, Any], num_envs: int):
         return _thunk
 
     # Use spawn to avoid inheriting parent RNG state (more reproducible across runs)
-    return SubprocVecEnv([make_thunk(i) for i in range(num_envs)], start_method="spawn")
+    return SubprocVecEnv([make_thunk(i) for i in range(num_envs)], start_method="spawn")  # type: ignore[arg-type]
 
 
 # Einfache Algo-Registry. Du kannst hier weitere Ansätze hinterlegen.
