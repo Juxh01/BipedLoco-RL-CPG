@@ -1,5 +1,6 @@
 from typing import Any, Dict, cast
 
+from datetime import datetime
 from pathlib import Path
 
 import hydra
@@ -35,6 +36,9 @@ def main(cfg: DictConfig) -> float:
     )
 
     model.learn(total_timesteps=int(1000000), progress_bar=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    model.save(f"agent-{timestamp}")
 
     mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
     print(f"mean reward: {mean_reward}, std reward: {std_reward}")
