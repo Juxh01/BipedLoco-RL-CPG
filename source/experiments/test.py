@@ -34,21 +34,10 @@ def main(cfg: DictConfig) -> float:
         verbose=1,
     )
 
-    model.learn(total_timesteps=int(100000), progress_bar=True)
+    model.learn(total_timesteps=int(1000000), progress_bar=True)
 
     mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
     print(f"mean reward: {mean_reward}, std reward: {std_reward}")
-
-    # while True:
-    #     # deterministic=True für stabilere Demo
-    #     action = env.action_space.sample()
-    #     obs, _, terminated, truncated, _ = env.step(action)
-
-    #     # Render ruft der Env-Treiber selbst auf, aber explizit geht auch:
-    #     env.unwrapped.mj_render()
-
-    #     if terminated or truncated:
-    #         obs, _ = env.reset()
 
     if isinstance(mean_reward, list):
         ret = (
@@ -57,6 +46,17 @@ def main(cfg: DictConfig) -> float:
     else:
         ret = float(mean_reward)
     return ret
+
+
+"""
+    while True:
+        # deterministic=True für stabilere Demo
+        action = env.action_space.sample()
+        obs, _, terminated, truncated, _ = env.step(action)
+
+        # Render ruft der Env-Treiber selbst auf, aber explizit geht auch:
+        env.unwrapped.mj_render()
+"""
 
 
 if __name__ == "__main__":

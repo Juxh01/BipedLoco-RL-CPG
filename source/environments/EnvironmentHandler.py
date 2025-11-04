@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, get_args, get_origin
 
-import copy
 import os
 import random
 import subprocess
@@ -15,6 +14,9 @@ try:
     import source.environments.myoassist.rl_train.envs as _ensure_env_registration  # noqa: F401
 except Exception as e:
     print(f"[EnvRegistry] Import of myoassist-Registry failed: {e} ")
+
+# ---- ganz oben im Modul (Top-Level!) ----
+
 
 from myosuite.utils import gym
 from stable_baselines3 import PPO, SAC
@@ -31,6 +33,56 @@ from source.environments.myoassist.rl_train.train.train_configs.config_imiatatio
 from source.environments.myoassist.rl_train.train.train_configs.config_imitation import (
     ImitationTrainSessionConfig,
 )
+
+try:
+    from omegaconf import DictConfig, OmegaConf
+except Exception:
+    DictConfig = None
+    OmegaConf = None
+
+
+def _to_plain_dict(cfg: Any) -> Dict[str, Any]:
+    """Sichert, dass wir einen picklable plain-dict verwenden."""
+    if OmegaConf is not None and isinstance(cfg, DictConfig):
+        return OmegaConf.to_container(cfg, resolve=True)
+    # Falls schon dict-artig:
+    return dict(cfg)
+
+
+def _sanitize_cfg(base: Dict[str, Any]) -> Dict[str, Any]:
+    """Entfernt/überschreibt Felder, die im Worker Ärger machen (Render/Logs etc.)."""
+    cfg = dict(base)
+    if cfg.get("render"):
+        cfg["render"] = False
+    if cfg.get("log_dir"):
+        cfg["log_dir"] = False
+    return cfg
+
+
+class _EnvFactory:
+    """Spawn-sichere Env-Factory (picklable, keine Closure)."""
+
+    def __init__(self, base_cfg: Dict[str, Any], base_seed: int, rank: int):
+        self.base_cfg = base_cfg
+        self.base_seed = int(base_seed)
+        self.rank = int(rank)
+
+    def __call__(self):
+        # Wichtig: _make_single_env muss ebenfalls Top-Level definiert sein!
+        from .EnvironmentHandler import _make_single_env
+
+        seed = self.base_seed + self.rank + 1000
+        cfg = _sanitize_cfg(self.base_cfg)
+        cfg["seed"] = seed
+
+        env = _make_single_env(cfg)
+
+        # Seeden (falls unterstützt)
+        if hasattr(env, "action_space") and hasattr(env.action_space, "seed"):
+            env.action_space.seed(seed)
+        if hasattr(env, "observation_space") and hasattr(env.observation_space, "seed"):
+            env.observation_space.seed(seed)
+        return env
 
 
 def _require(d: Dict[str, Any], key: str, ctx: str = ""):
@@ -157,8 +209,8 @@ def _seed_random_generators(seed: int):
     torch.cuda.manual_seed_all(seed)
 
 
-def _make_vec_env(env_cfg: Dict[str, Any], num_envs: int):
-    """SubprocVecEnv with individual seeds per env and improved reproducibility."""
+""" def _make_vec_env(env_cfg: Dict[str, Any], num_envs: int):
+    SubprocVecEnv with individual seeds per env and improved reproducibility.
     base_seed = int(env_cfg.get("seed", 0))
 
     def make_thunk(rank: int):
@@ -185,7 +237,25 @@ def _make_vec_env(env_cfg: Dict[str, Any], num_envs: int):
         return _thunk
 
     # Use spawn to avoid inheriting parent RNG state (more reproducible across runs)
-    return SubprocVecEnv([make_thunk(i) for i in range(num_envs)], start_method="spawn")  # type: ignore[arg-type]
+    return SubprocVecEnv([make_thunk(i) for i in range(num_envs)], start_method="spawn") """
+
+
+# ---- Ersatz für deine _make_vec_env ----
+def _make_vec_env(env_cfg: Dict[str, Any], num_envs: int):
+    """SubprocVecEnv, spawn-sicher (ohne innere Closures)."""
+    base_seed = int(env_cfg.get("seed", 0))
+    plain_cfg = _to_plain_dict(env_cfg)  # <- garantiert picklable
+    factories = [_EnvFactory(plain_cfg, base_seed, i) for i in range(num_envs)]
+    return SubprocVecEnv(factories, start_method="spawn")
+
+
+# ---- Ersatz für deine _make_vec_env ----
+def _make_vec_env(env_cfg: Dict[str, Any], num_envs: int):
+    """SubprocVecEnv, spawn-sicher (ohne innere Closures)."""
+    base_seed = int(env_cfg.get("seed", 0))
+    plain_cfg = _to_plain_dict(env_cfg)  # <- garantiert picklable
+    factories = [_EnvFactory(plain_cfg, base_seed, i) for i in range(num_envs)]
+    return SubprocVecEnv(factories, start_method="spawn")
 
 
 # Einfache Algo-Registry. Du kannst hier weitere Ansätze hinterlegen.
