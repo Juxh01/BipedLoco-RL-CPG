@@ -548,6 +548,63 @@
 		<jointlimitfrc name="l_ankle_sensor" joint="ankle_angle_l"/>
 		<jointlimitfrc name="r_mtp_sensor" joint="mtp_angle_r"/>
 		<jointlimitfrc name="l_mtp_sensor" joint="mtp_angle_l"/>
+
+        <!-- Muscle tendon length and velocity sensors (added) -->
+        <!-- Right leg -->
+        <tendonpos name="abd_r_len" tendon="abd_r_tendon"/>
+        <tendonvel name="abd_r_vel" tendon="abd_r_tendon"/>
+        <tendonpos name="add_r_len" tendon="add_r_tendon"/>
+        <tendonvel name="add_r_vel" tendon="add_r_tendon"/>
+        <tendonpos name="hamstrings_r_len" tendon="hamstrings_r_tendon"/>
+        <tendonvel name="hamstrings_r_vel" tendon="hamstrings_r_tendon"/>
+        <tendonpos name="bifemsh_r_len" tendon="bifemsh_r_tendon"/>
+        <tendonvel name="bifemsh_r_vel" tendon="bifemsh_r_tendon"/>
+        <tendonpos name="edl_r_len" tendon="edl_r_tendon"/>
+        <tendonvel name="edl_r_vel" tendon="edl_r_tendon"/>
+        <tendonpos name="fdl_r_len" tendon="fdl_r_tendon"/>
+        <tendonvel name="fdl_r_vel" tendon="fdl_r_tendon"/>
+        <tendonpos name="glutmax_r_len" tendon="glut_max_r_tendon"/>
+        <tendonvel name="glutmax_r_vel" tendon="glut_max_r_tendon"/>
+        <tendonpos name="iliopsoas_r_len" tendon="iliopsoas_r_tendon"/>
+        <tendonvel name="iliopsoas_r_vel" tendon="iliopsoas_r_tendon"/>
+        <tendonpos name="rectfem_r_len" tendon="rect_fem_r_tendon"/>
+        <tendonvel name="rectfem_r_vel" tendon="rect_fem_r_tendon"/>
+        <tendonpos name="vasti_r_len" tendon="vasti_r_tendon"/>
+        <tendonvel name="vasti_r_vel" tendon="vasti_r_tendon"/>
+        <tendonpos name="gastroc_r_len" tendon="gastroc_r_tendon"/>
+        <tendonvel name="gastroc_r_vel" tendon="gastroc_r_tendon"/>
+        <tendonpos name="soleus_r_len" tendon="soleus_r_tendon"/>
+        <tendonvel name="soleus_r_vel" tendon="soleus_r_tendon"/>
+        <tendonpos name="tibant_r_len" tendon="tib_ant_r_tendon"/>
+        <tendonvel name="tibant_r_vel" tendon="tib_ant_r_tendon"/>
+
+        <!-- Left leg -->
+        <tendonpos name="abd_l_len" tendon="abd_l_tendon"/>
+        <tendonvel name="abd_l_vel" tendon="abd_l_tendon"/>
+        <tendonpos name="add_l_len" tendon="add_l_tendon"/>
+        <tendonvel name="add_l_vel" tendon="add_l_tendon"/>
+        <tendonpos name="hamstrings_l_len" tendon="hamstrings_l_tendon"/>
+        <tendonvel name="hamstrings_l_vel" tendon="hamstrings_l_tendon"/>
+        <tendonpos name="bifemsh_l_len" tendon="bifemsh_l_tendon"/>
+        <tendonvel name="bifemsh_l_vel" tendon="bifemsh_l_tendon"/>
+        <tendonpos name="edl_l_len" tendon="edl_l_tendon"/>
+        <tendonvel name="edl_l_vel" tendon="edl_l_tendon"/>
+        <tendonpos name="fdl_l_len" tendon="fdl_l_tendon"/>
+        <tendonvel name="fdl_l_vel" tendon="fdl_l_tendon"/>
+        <tendonpos name="glutmax_l_len" tendon="glut_max_l_tendon"/>
+        <tendonvel name="glutmax_l_vel" tendon="glut_max_l_tendon"/>
+        <tendonpos name="iliopsoas_l_len" tendon="iliopsoas_l_tendon"/>
+        <tendonvel name="iliopsoas_l_vel" tendon="iliopsoas_l_tendon"/>
+        <tendonpos name="rectfem_l_len" tendon="rect_fem_l_tendon"/>
+        <tendonvel name="rectfem_l_vel" tendon="rect_fem_l_tendon"/>
+        <tendonpos name="vasti_l_len" tendon="vasti_l_tendon"/>
+        <tendonvel name="vasti_l_vel" tendon="vasti_l_tendon"/>
+        <tendonpos name="gastroc_l_len" tendon="gastroc_l_tendon"/>
+        <tendonvel name="gastroc_l_vel" tendon="gastroc_l_tendon"/>
+        <tendonpos name="soleus_l_len" tendon="soleus_l_tendon"/>
+        <tendonvel name="soleus_l_vel" tendon="soleus_l_tendon"/>
+        <tendonpos name="tibant_l_len" tendon="tib_ant_l_tendon"/>
+        <tendonvel name="tibant_l_vel" tendon="tib_ant_l_tendon"/>
     </sensor>
 	
     <tendon>

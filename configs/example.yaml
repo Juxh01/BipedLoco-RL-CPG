@@ -14,12 +14,13 @@ logger_params:
   logging_frequency: 8
 env:
   env_id: "myoAssistLeg-v0"
-  num_envs: 8
+  num_envs: 4
   seed: 10
   model_path: "models/26muscle_3D/myoLeg26_BASELINE.xml"
   render: false
   log_dir: "./runs"
   is_evaluate_mode: False
+  use_cpg_wrapper: false
   env_params:
     safe_height: 0.7
     out_of_trajectory_threshold: 0.2
@@ -87,6 +88,35 @@ env:
       - l_ankle_sensor
       - r_mtp_sensor
       - l_mtp_sensor
+      # Muscle tendon states (velocity [m/s])
+      # Right leg
+      - abd_r_vel
+      - add_r_vel
+      - hamstrings_r_vel
+      - bifemsh_r_vel
+      - edl_r_vel
+      - fdl_r_vel
+      - glutmax_r_vel
+      - iliopsoas_r_vel
+      - rectfem_r_vel
+      - vasti_r_vel
+      - gastroc_r_vel
+      - soleus_r_vel
+      - tibant_r_vel
+      # Left leg
+      - abd_l_vel
+      - add_l_vel
+      - hamstrings_l_vel
+      - bifemsh_l_vel
+      - edl_l_vel
+      - fdl_l_vel
+      - glutmax_l_vel
+      - iliopsoas_l_vel
+      - rectfem_l_vel
+      - vasti_l_vel
+      - gastroc_l_vel
+      - soleus_l_vel
+      - tibant_l_vel
     joint_limit_sensor_keys:
       - r_knee_sensor
       - l_knee_sensor

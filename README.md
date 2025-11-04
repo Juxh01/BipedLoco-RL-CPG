@@ -56,3 +56,7 @@ make test
 # Build distribution
 make build
 ```
+
+### TODOs
+
+- Move sensor changes in 26D-BASELINE out of myoassist Repo 
