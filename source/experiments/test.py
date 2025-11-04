@@ -1,5 +1,18 @@
 from typing import Any, Dict, cast
 
+# ---- Thread-/BLAS-Config muss VOR dem Import schwerer Libs passieren ----
+import os
+
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
+import torch
+
+torch.set_num_threads(4)
+torch.set_num_interop_threads(2)
+
 from datetime import datetime
 from pathlib import Path
 
