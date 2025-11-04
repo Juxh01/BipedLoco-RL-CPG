@@ -27,11 +27,11 @@ def main(cfg: DictConfig) -> float:
     print(f"Environment Obs: {env.observation_space}")
     print(f"Environment Act: {env.action_space}")
 
+    total_batch = 65536
+    n_steps = int(total_batch / cfg.env.num_env)
+
     model = PPO(
-        "MlpPolicy",
-        env,
-        device="cpu",
-        verbose=1,
+        "MlpPolicy", env, device="cpu", verbose=1, n_steps=n_steps, batch_size=8192
     )
 
     model.learn(total_timesteps=int(1000000), progress_bar=True)
