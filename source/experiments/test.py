@@ -10,9 +10,6 @@ from stable_baselines3.common.evaluation import evaluate_policy
 
 from source.environments.EnvironmentHandler import EnvironmentHandler
 
-# ---- Thread-/BLAS-Config muss VOR dem Import schwerer Libs passieren ----
-
-
 CONFIG_DIR = Path(__file__).parents[2] / "configs"
 
 
