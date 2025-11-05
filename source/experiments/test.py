@@ -1,18 +1,5 @@
 from typing import Any, Dict, cast
 
-# ---- Thread-/BLAS-Config muss VOR dem Import schwerer Libs passieren ----
-import os
-
-os.environ["OMP_NUM_THREADS"] = "1"
-os.environ["OPENBLAS_NUM_THREADS"] = "1"
-os.environ["MKL_NUM_THREADS"] = "1"
-os.environ["NUMEXPR_NUM_THREADS"] = "1"
-
-import torch
-
-torch.set_num_threads(4)
-torch.set_num_interop_threads(2)
-
 from datetime import datetime
 from pathlib import Path
 
@@ -22,6 +9,9 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 
 from source.environments.EnvironmentHandler import EnvironmentHandler
+
+# ---- Thread-/BLAS-Config muss VOR dem Import schwerer Libs passieren ----
+
 
 CONFIG_DIR = Path(__file__).parents[2] / "configs"
 
@@ -44,9 +34,7 @@ def main(cfg: DictConfig) -> float:
     total_batch = 65536
     n_steps = int(total_batch / cfg.env.num_envs)
 
-    model = PPO(
-        "MlpPolicy", env, device="cpu", verbose=1, n_steps=n_steps, batch_size=8192
-    )
+    model = PPO("MlpPolicy", env, device="cpu", verbose=1, n_steps=n_steps)
 
     model.learn(total_timesteps=int(1000000), progress_bar=True)
 
