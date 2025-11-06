@@ -6,7 +6,9 @@ from pathlib import Path
 import hydra
 from omegaconf import DictConfig
 from stable_baselines3 import PPO
+from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.vec_env import VecMonitor
 
 from source.environments.EnvironmentHandler import EnvironmentHandler
 
@@ -17,6 +19,16 @@ CONFIG_DIR = Path(__file__).parents[2] / "configs"
 def main(cfg: DictConfig) -> float:
     # Cast Hydra DictConfig to a plain dict for type checkers; at runtime it's mapping-compatible
     env = EnvironmentHandler.create_environment(cast(Dict[str, Any], cfg))
+    env = VecMonitor(env)
+
+    # Loggt eval/mean_reward u. eval/mean_ep_length nach tb_logs/PPO_1/
+    eval_cb = EvalCallback(
+        env,
+        log_path="tb_logs/eval",
+        eval_freq=10_000,  # nach Bedarf
+        deterministic=True,
+        n_eval_episodes=20,
+    )
 
     # Gymnasium/Gym compatibility: reset may return (obs, info) or obs
     _reset_out = env.reset()
@@ -28,12 +40,19 @@ def main(cfg: DictConfig) -> float:
     print(f"Environment Obs: {env.observation_space}")
     print(f"Environment Act: {env.action_space}")
 
-    total_batch = 65536
+    total_batch = 65536 // 2
     n_steps = int(total_batch / cfg.env.num_envs)
 
-    model = PPO("MlpPolicy", env, device="cpu", verbose=1, n_steps=n_steps)
+    model = PPO(
+        "MlpPolicy",
+        env,
+        device="cpu",
+        verbose=1,
+        n_steps=n_steps,
+        tensorboard_log="./tensorboard",
+    )
 
-    model.learn(total_timesteps=int(1000000), progress_bar=True)
+    model.learn(total_timesteps=int(100000), progress_bar=True, callback=eval_cb)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model.save(f"agent-{timestamp}")
