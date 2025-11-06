@@ -8,6 +8,7 @@ from omegaconf import DictConfig
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import VecMonitor
 
 from source.environments.EnvironmentHandler import EnvironmentHandler
@@ -21,11 +22,23 @@ def main(cfg: DictConfig) -> float:
     env = EnvironmentHandler.create_environment(cast(Dict[str, Any], cfg))
     env = VecMonitor(env)
 
+    # === Separates Eval-Env (NICHT vektorisiert!) ===
+    # Falls dein Factory immer VecEnv baut: erzwinge num_envs=1 / eval_mode=True
+    eval_cfg = cast(Dict[str, Any], cfg).copy()
+    eval_cfg["env"]["num_envs"] = 1
+    eval_env = EnvironmentHandler.create_environment(eval_cfg)
+    eval_env = Monitor(eval_env)  # wichtig fürs Evaluations-Logging
+
+    # eval_freq: bei VecEnv ~timesteps/num_envs
+    num_envs = cfg.env.num_envs
+    print(f"num_envs: {num_envs}")
+    eval_freq = max(1, 100_000 // num_envs)
+
     # Loggt eval/mean_reward u. eval/mean_ep_length nach tb_logs/PPO_1/
     eval_cb = EvalCallback(
-        env,
+        eval_env,
         log_path="tb_logs/eval",
-        eval_freq=10_000,  # nach Bedarf
+        eval_freq=eval_freq,  # nach Bedarf
         deterministic=True,
         n_eval_episodes=20,
     )
@@ -52,7 +65,7 @@ def main(cfg: DictConfig) -> float:
         tensorboard_log="./tensorboard",
     )
 
-    model.learn(total_timesteps=int(100000), progress_bar=True, callback=eval_cb)
+    model.learn(total_timesteps=int(20000000), progress_bar=True, callback=eval_cb)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model.save(f"agent-{timestamp}")
