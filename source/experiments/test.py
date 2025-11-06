@@ -65,7 +65,7 @@ def main(cfg: DictConfig) -> float:
         tensorboard_log="./tensorboard",
     )
 
-    model.learn(total_timesteps=int(20000000), progress_bar=True, callback=eval_cb)
+    model.learn(total_timesteps=int(10000000), progress_bar=True, callback=eval_cb)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model.save(f"agent-{timestamp}")
