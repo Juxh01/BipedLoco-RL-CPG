@@ -238,6 +238,7 @@ def _seed_random_generators(seed: int):
     return SubprocVecEnv([make_thunk(i) for i in range(num_envs)], start_method="spawn") """
 
 
+# TODO: Normalize observation
 # ---- Ersatz für _make_vec_env ----
 def _make_vec_env(env_cfg: Dict[str, Any], num_envs: int):
     """SubprocVecEnv, spawn-sicher (ohne innere Closures)."""

@@ -6,7 +6,11 @@ from pathlib import Path
 import hydra
 from omegaconf import DictConfig
 from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import EvalCallback
+from stable_baselines3.common.callbacks import (
+    CallbackList,
+    CheckpointCallback,
+    EvalCallback,
+)
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import VecMonitor
@@ -38,10 +42,19 @@ def main(cfg: DictConfig) -> float:
     eval_cb = EvalCallback(
         eval_env,
         log_path="tb_logs/eval",
+        best_model_save_path="checkpoints/best",
         eval_freq=eval_freq,  # nach Bedarf
         deterministic=True,
         n_eval_episodes=20,
     )
+
+    # Regelmäßige Schnappschüsse (z. B. alle 1m/num_envs Schritte)
+    ckpt_cb = CheckpointCallback(
+        save_freq=10 * eval_freq,  # gleiche Frequenz wie Eval oder was dir passt
+        save_path="checkpoints/regular",  # Ordner für laufende Snapshots
+        name_prefix="ppo",
+    )
+    callbacks = CallbackList([eval_cb, ckpt_cb])
 
     # Gymnasium/Gym compatibility: reset may return (obs, info) or obs
     _reset_out = env.reset()
@@ -65,10 +78,10 @@ def main(cfg: DictConfig) -> float:
         tensorboard_log="./tensorboard",
     )
 
-    model.learn(total_timesteps=int(10000000), progress_bar=True, callback=eval_cb)
+    model.learn(total_timesteps=int(10000000), progress_bar=True, callback=callbacks)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    model.save(f"agent-{timestamp}")
+    model.save(f"checkpoints/final/ppo_final/agent-{timestamp}")
 
     mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
     print(f"mean reward: {mean_reward}, std reward: {std_reward}")
