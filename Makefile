@@ -29,9 +29,17 @@ MAKE ?= make
 PRECOMMIT ?= uv run pre-commit
 RUFF ?= uv run ruff
 
+# Default install extra; override to `ucloud` by calling `make install ucloud`
+EXTRA := desktop
+ifneq (,$(filter ucloud,$(MAKECMDGOALS)))
+EXTRA := ucloud
+endif
+
 install:
+	# Default install: include dev deps and the desktop (regular OpenCV) extra
+	# If you invoke `make install ucloud` you will get the ucloud (opencv-python-headless) extra
 	$(PIP) install swig
-	$(PIP) install -e ".[dev]"
+	$(PIP) install -e ".[dev,$(EXTRA)]"
 	pre-commit install
 
 check:

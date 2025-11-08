@@ -30,6 +30,7 @@ class CPGWrapper(BaseWrapper):
     - Exposes a RL action space for CPG modulation (D, Gw, Gc, K_Ia, K_Ib).
     - Internally integrates a TwoLayerCPG and sends 26 muscle activations to the env.
     - Uses Ia = rectified tendon velocity (as proxy for the muscles velocity), Ib = actuator_force as feedback each step.
+    - Does not normalize/scale Ia or Ib; K_Ia/K_Ib are produced from bounded actions via an exponential transform.
     - Sub-steps the CPG ODE to ensure stable integration.
 
     Observations: unchanged (pass-through).
@@ -50,6 +51,8 @@ class CPGWrapper(BaseWrapper):
         ia_rectify: bool = True,
         ia_scale: float = 1.0,
         ib_scale: float = 1.0,
+        cpg_action_bounds: Optional[Dict[str, Tuple[float, float]]] = None,
+        cpg_use_sign_masks: bool = True,
     ):
         super().__init__(env)
 
@@ -71,6 +74,7 @@ class CPGWrapper(BaseWrapper):
             else float(getattr(env, "dt", 1.0 / 30.0))
         )
         self.ia_rectify = bool(ia_rectify)
+        # Legacy scales retained for compatibility but not used (Ia/IB remain unscaled)
         self.ia_scale = float(ia_scale)
         self.ib_scale = float(ib_scale)
 
@@ -94,71 +98,38 @@ class CPGWrapper(BaseWrapper):
             self._name_to_cpg_idx.get(name, None) for name in self._act_names_env
         ]
 
-        # TODO: Refactor mapping check in a separate class helper function
         # Log mismatches if any (kept simple; no canonicalization)
-        missing_in_env = [
-            name
-            for name, idx in zip(MUSCLE_ORDER, self._env_idx_for_cpg)
-            if idx is None
-        ]
-        if missing_in_env:
-            logger.warning(
-                f"[CPGWrapper] CPG MUSCLE_ORDER not fully present in env actuators. Missing: {missing_in_env}"
-            )
-        missing_in_cpg = [
-            name
-            for name, idx in zip(self._act_names_env, self._cpg_idx_for_env)
-            if idx is None
-        ]
-        if missing_in_cpg:
-            logger.warning(
-                f"[CPGWrapper] Env actuators not fully present in CPG MUSCLE_ORDER. Missing: {missing_in_cpg}"
-            )
+        self._check_mappings()
 
-        # TODO: Wrap tendon velocity mapping in a separate function
         # Build indices into env's sensor observation for tendon velocities (strict)
-        if not hasattr(self.env, "observation_sensor_keys"):
-            raise AttributeError(
-                "CPGWrapper: env.observation_sensor_keys not available."
-            )
-        sensor_keys: List[str] = list(getattr(self.env, "observation_sensor_keys"))
-        sensor_key_to_idx: Dict[str, int] = {k: i for i, k in enumerate(sensor_keys)}
-        self._vel_idx_for_cpg: List[int] = []
-        missing_vel: List[str] = []
-        for m in MUSCLE_ORDER:
-            k = f"{m}_vel"
-            if k in sensor_key_to_idx:
-                self._vel_idx_for_cpg.append(sensor_key_to_idx[k])
-            else:
-                missing_vel.append(k)
-        if missing_vel:
-            raise KeyError(
-                f"CPGWrapper: Missing required tendon-velocity sensor keys in env.observation_sensor_keys: {missing_vel}"
-            )
+        self._check_sensor_mappings()
 
-        # TODO: Continue Validation from here
-        # Precompute Fmax normalization (Ib) from actuator_gainprm[:, 2]
-        # Guard for shapes and non-muscle actuators
-        gainprm = np.asarray(self.sim.model.actuator_gainprm, dtype=np.float32)
-        if (
-            gainprm.ndim == 2
-            and gainprm.shape[0] >= self.sim.model.nu
-            and gainprm.shape[1] >= 3
-        ):
-            self._fmax_env = gainprm[: self.sim.model.nu, 2].copy()
-        else:
-            self._fmax_env = np.ones(self.sim.model.nu, dtype=np.float32)
-        # Map to CPG muscle order (fallback epsilon to avoid divide-by-zero)
-        eps = np.finfo(np.float32).eps
-        self._fmax_cpg = np.ones(len(MUSCLE_ORDER), dtype=np.float32)
-        for i_cpg, env_idx in enumerate(self._env_idx_for_cpg):
-            if env_idx is not None and 0 <= env_idx < self._fmax_env.shape[0]:
-                val = float(self._fmax_env[env_idx])
-                self._fmax_cpg[i_cpg] = val if val > eps else 1.0
-            else:
-                self._fmax_cpg[i_cpg] = 1.0
-        # Velocity normalization scale for Ia (m/s). If you have per-muscle vmax, replace this scalar.
-        self._ia_vnorm = 1.0
+        # No normalization of Ia/Ib: keep raw units (m/s and N). Scaling is learned via K gains.
+
+        # Configure sign masks for Ia (default +1) and Ib (default -1). Can be disabled via config.
+        self._use_sign_masks = bool(cpg_use_sign_masks)
+        self._sign_Ia = np.ones((2, 3, 2), dtype=np.float32)
+        self._sign_Ib = -np.ones((2, 3, 2), dtype=np.float32)
+
+        # Configurable action bounds for HPO (defaults used if not provided)
+        self._action_bounds: Dict[str, Tuple[float, float]] = {
+            "D": (0.0, 5.0),
+            "Gw": (0.0, 3.0),
+            "Gc": (0.0, 3.0),
+            # Bounded theta domains for exponential transform → positive gains
+            "theta_Ia": (-5.0, 0.0),
+            "theta_Ib": (-5.0, 0.0),
+        }
+        if cpg_action_bounds:
+            for k, v in cpg_action_bounds.items():
+                if (
+                    k in self._action_bounds
+                    and isinstance(v, (list, tuple))
+                    and len(v) == 2
+                ):
+                    lo, hi = float(v[0]), float(v[1])
+                    if lo <= hi:
+                        self._action_bounds[k] = (lo, hi)
 
         # Build RL action space for CPG modulation
         self._act_names_rl, low, high = self._build_action_space()
@@ -168,6 +139,8 @@ class CPGWrapper(BaseWrapper):
             dtype=np.float32,
             shape=(len(low),),
         )
+        # Precompute masks and indices for K gains (vectorized) to avoid per-step parsing overhead
+        self._init_sign_masks()
         # Observations unchanged
         self.observation_space = env.observation_space
 
@@ -239,6 +212,54 @@ class CPGWrapper(BaseWrapper):
             )
         return [str(n) for n in names]
 
+    def _check_mappings(self):
+        """
+        Validate mappings between CPG MUSCLE_ORDER and env actuator names; log warnings if mismatches found.
+        """
+        # Log any missing mappings between CPG MUSCLE_ORDER and env actuators
+        missing_in_env = [
+            name
+            for name, idx in zip(MUSCLE_ORDER, self._env_idx_for_cpg)
+            if idx is None
+        ]
+        if missing_in_env:
+            logger.warning(
+                f"[CPGWrapper] CPG MUSCLE_ORDER not fully present in env actuators. Missing: {missing_in_env}"
+            )
+        missing_in_cpg = [
+            name
+            for name, idx in zip(self._act_names_env, self._cpg_idx_for_env)
+            if idx is None
+        ]
+        if missing_in_cpg:
+            logger.warning(
+                f"[CPGWrapper] Env actuators not fully present in CPG MUSCLE_ORDER. Missing: {missing_in_cpg}"
+            )
+
+    def _check_sensor_mappings(self):
+        """
+        Validate that all required tendon velocity sensor keys are available in env.observation_sensor_keys.
+        Raises KeyError if any are missing.
+        """
+        if not hasattr(self.env, "observation_sensor_keys"):
+            raise AttributeError(
+                "CPGWrapper: env.observation_sensor_keys not available."
+            )
+        sensor_keys: List[str] = list(getattr(self.env, "observation_sensor_keys"))
+        sensor_key_to_idx: Dict[str, int] = {k: i for i, k in enumerate(sensor_keys)}
+        self._vel_idx_for_cpg: List[int] = []
+        missing_vel: List[str] = []
+        for m in MUSCLE_ORDER:
+            k = f"{m}_vel"
+            if k in sensor_key_to_idx:
+                self._vel_idx_for_cpg.append(sensor_key_to_idx[k])
+            else:
+                missing_vel.append(k)
+        if missing_vel:
+            raise KeyError(
+                f"CPGWrapper: Missing required tendon-velocity sensor keys in env.observation_sensor_keys: {missing_vel}"
+            )
+
     def _get_tendon_name_to_id(self) -> Dict[str, int]:
         model = self.sim.model
         out: Dict[str, int] = {}
@@ -260,54 +281,89 @@ class CPGWrapper(BaseWrapper):
 
     def _build_action_space(self) -> Tuple[List[str], List[float], List[float]]:
         """
-        RL action vector layout (size = 42):
-        - D (descending drive) per side, joint, EF: 2*3*2 = 12 in [0, 5]
-        - Gw couplings: Gw_lr_hip, Gw_H_to_K, Gw_K_to_A: 3 in [0, 3]
-        - Gc couplings per joint: Gc_hip, Gc_knee, Gc_ankle: 3 in [0, 3]
-        - K_Ia per side, joint, EF: 12 in [-3, 3]
-        - K_Ib per side, joint, EF: 12 in [-3, 3]
+        RL action vector layout for CPG modulation:
+        - D (descending drive) per side, joint, EF: 2*3*2 = 12 in bounds self._action_bounds["D"]
+        - Gw couplings: Gw_lr_hip, Gw_H_to_K, Gw_K_to_A: 3 in bounds self._action_bounds["Gw"]
+        - Gc couplings per joint: Gc_hip, Gc_knee, Gc_ankle: 3 in bounds self._action_bounds["Gc"]
+        - theta_Ia (to be exp-mapped) per side, joint, EF: 12 in bounds self._action_bounds["theta_Ia"]
+        - theta_Ib (to be exp-mapped) per side, joint, EF: 12 in bounds self._action_bounds["theta_Ib"]
         """
         names: List[str] = []
         low: List[float] = []
         high: List[float] = []
-
+        bD_lo, bD_hi = self._action_bounds["D"]
+        bGw_lo, bGw_hi = self._action_bounds["Gw"]
+        bGc_lo, bGc_hi = self._action_bounds["Gc"]
+        bIa_lo, bIa_hi = self._action_bounds["theta_Ia"]
+        bIb_lo, bIb_hi = self._action_bounds["theta_Ib"]
         # D
         for side in SIDES:  # r, l
             for joint in JOINTS:  # hip, knee, ankle
                 for ef in EF:  # E, F
                     names.append(f"D_{joint}_{ef}_{side}")
-                    low.append(0.0)
-                    high.append(5.0)
+                    low.append(bD_lo)
+                    high.append(bD_hi)
 
         # Gw
         for k in ("Gw_lr_hip", "Gw_H_to_K", "Gw_K_to_A"):
             names.append(k)
-            low.append(0.0)
-            high.append(3.0)
+            low.append(bGw_lo)
+            high.append(bGw_hi)
 
         # Gc
         for k in ("Gc_hip", "Gc_knee", "Gc_ankle"):
             names.append(k)
-            low.append(0.0)
-            high.append(3.0)
+            low.append(bGc_lo)
+            high.append(bGc_hi)
 
-        # K_Ia
+        # theta_Ia (exp-mapped to K_Ia)
         for side in SIDES:
             for joint in JOINTS:
                 for ef in EF:
                     names.append(f"K_Ia_{joint}_{ef}_{side}")
-                    low.append(-3.0)
-                    high.append(3.0)
+                    low.append(bIa_lo)
+                    high.append(bIa_hi)
 
-        # K_Ib
+        # theta_Ib (exp-mapped to K_Ib)
         for side in SIDES:
             for joint in JOINTS:
                 for ef in EF:
                     names.append(f"K_Ib_{joint}_{ef}_{side}")
-                    low.append(-3.0)
-                    high.append(3.0)
+                    low.append(bIb_lo)
+                    high.append(bIb_hi)
 
         return names, low, high
+
+    def _init_sign_masks(self) -> None:
+        """Precompute K_Ia/K_Ib action indices and sign masks for fast, vectorized mapping.
+
+        Creates:
+        - self._k_ia_indices, self._k_ib_indices: lists of action indices for K_Ia/K_Ib entries
+        - self._k_ia_mask, self._k_ib_mask: numpy float32 arrays of +1/-1 signs aligned with indices
+        """
+        # Indices into the RL action vector for K_Ia and K_Ib entries (order matches _act_names_rl)
+        self._k_ia_indices = [
+            i for i, k in enumerate(self._act_names_rl) if k.startswith("K_Ia_")
+        ]
+        self._k_ib_indices = [
+            i for i, k in enumerate(self._act_names_rl) if k.startswith("K_Ib_")
+        ]
+
+        def _build_mask_for_keys(indices, sign_array):
+            out = np.ones(len(indices), dtype=np.float32)
+            for out_i, act_i in enumerate(indices):
+                k = self._act_names_rl[act_i]
+                # parse key: K_Ia_<joint>_<E|F>_<side>
+                parts = k.split("_")
+                joint, ef, side = parts[2], parts[3], parts[4]
+                s = TwoLayerCPG._side_idx(side)
+                j = TwoLayerCPG._joint_idx(joint)
+                e = TwoLayerCPG._ef_idx(ef)
+                out[out_i] = float(sign_array[s, j, e])
+            return out
+
+        self._k_ia_mask = _build_mask_for_keys(self._k_ia_indices, self._sign_Ia)
+        self._k_ib_mask = _build_mask_for_keys(self._k_ib_indices, self._sign_Ib)
 
     def _apply_rl_action_to_cpg(self, a: np.ndarray):
         """
@@ -316,14 +372,44 @@ class CPGWrapper(BaseWrapper):
         assert a.shape[0] == len(self._act_names_rl), (
             f"Expected action length {len(self._act_names_rl)}, got {a.shape[0]}"
         )
-        payload: Dict[str, float] = {k: float(v) for k, v in zip(self._act_names_rl, a)}
+        payload: Dict[str, float] = {}
+        a = np.asarray(a, dtype=np.float32).ravel()
+        # First handle non-K entries (D, Gw, Gc)
+        k_set = set(self._k_ia_indices + self._k_ib_indices)
+        for i, name in enumerate(self._act_names_rl):
+            if i in k_set:
+                continue
+            payload[name] = float(a[i])
+
+        # Vectorized handling for K_Ia
+        if len(self._k_ia_indices) > 0:
+            theta_ia = a[self._k_ia_indices]
+            mag_ia = np.exp(theta_ia)
+            if self._use_sign_masks:
+                signed_ia = self._k_ia_mask * mag_ia
+            else:
+                signed_ia = mag_ia
+            for out_i, act_i in enumerate(self._k_ia_indices):
+                payload[self._act_names_rl[act_i]] = float(signed_ia[out_i])
+
+        # Vectorized handling for K_Ib
+        if len(self._k_ib_indices) > 0:
+            theta_ib = a[self._k_ib_indices]
+            mag_ib = np.exp(theta_ib)
+            if self._use_sign_masks:
+                signed_ib = self._k_ib_mask * mag_ib
+            else:
+                signed_ib = mag_ib
+            for out_i, act_i in enumerate(self._k_ib_indices):
+                payload[self._act_names_rl[act_i]] = float(signed_ib[out_i])
+
         self.cpg.apply_action(payload)
 
     def _get_Ia_Ib_cpg_order(self) -> Tuple[np.ndarray, np.ndarray]:
         """
         Read env signals and reorder to MUSCLE_ORDER for the CPG.
-        - Ia = rectified tendon velocity (m/s) from env observations, scaled by ia_scale. STRICT: all keys must exist.
-        - Ib = actuator_force (N), scaled by ib_scale.
+        - Ia = rectified tendon velocity (m/s) from env observations (no scaling).
+        - Ib = actuator_force (N) (no scaling).
         Returns arrays of shape (26,) matching MUSCLE_ORDER. Missing entries -> 0.
         """
         # Tendon velocities for Ia from environment observation dict
@@ -339,12 +425,6 @@ class CPGWrapper(BaseWrapper):
 
         Ia = np.zeros(len(MUSCLE_ORDER), dtype=np.float32)
         Ib = np.zeros(len(MUSCLE_ORDER), dtype=np.float32)
-        vnorm = (
-            float(self._ia_vnorm)
-            if getattr(self, "_ia_vnorm", None) is not None
-            else 1.0
-        )
-        vnorm = vnorm if vnorm > 0 else 1.0
         for i_cpg, env_idx in enumerate(self._env_idx_for_cpg):
             # Ia from sensor observations using precomputed indices
             idx = self._vel_idx_for_cpg[i_cpg]
@@ -355,20 +435,15 @@ class CPGWrapper(BaseWrapper):
             v = float(sensor_arr[idx])
             if self.ia_rectify:
                 v = max(0.0, v)
-            Ia[i_cpg] = self.ia_scale * (v / vnorm)
+            Ia[i_cpg] = v
             # Ib from actuator force if available; if actuator mapping missing, treat as 0
             if env_idx is None or env_idx >= f_env.shape[0]:
-                Ib[i_cpg] = 0.0
+                raise ValueError(
+                    f"CPGWrapper: Cannot map Ib for muscle '{MUSCLE_ORDER[i_cpg]}' with missing env actuator mapping."
+                )
             else:
-                denom = (
-                    self._fmax_cpg[i_cpg] if i_cpg < self._fmax_cpg.shape[0] else 1.0
-                )
-                Ib[i_cpg] = self.ib_scale * (
-                    f_env[env_idx] / (denom if denom > 0 else 1.0)
-                )
-        # Bound signals to [0, 1] for stability
-        Ia = np.clip(Ia, 0.0, 1.0)
-        Ib = np.clip(Ib, 0.0, 1.0)
+                Ib[i_cpg] = float(f_env[env_idx])
+        # No clipping; raw signals passed to CPG, scaled by learned gains
         return Ia, Ib
 
     def _map_cpg_to_env_action(self, act_cpg: np.ndarray) -> np.ndarray:

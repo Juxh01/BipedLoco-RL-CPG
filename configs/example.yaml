@@ -14,13 +14,23 @@ logger_params:
   logging_frequency: 8
 env:
   env_id: "myoAssistLeg-v0"
-  num_envs: 16
+  num_envs: 1
   seed: 10
   model_path: "models/26muscle_3D/myoLeg26_BASELINE.xml"
   render: false
   log_dir: "./runs"
   is_evaluate_mode: False
-  use_cpg_wrapper: false
+  use_cpg_wrapper: true
+  # Configure bounds for RL action components in the CPG wrapper (for HPO)
+  # D, Gw, Gc are used directly. theta_Ia/theta_Ib are mapped via exp(theta) -> positive gains.
+  cpg_action_bounds:
+    D: [0.0, 5.0]
+    Gw: [0.0, 3.0]
+    Gc: [0.0, 3.0]
+    theta_Ia: [-5.0, 0.0]
+    theta_Ib: [-5.0, 0.0]
+  # If true, apply fixed sign masks to K gains (Ia: +1 excitatory, Ib: -1 inhibitory). If false, both are positive.
+  cpg_use_sign_masks: true
   env_params:
     safe_height: 0.7
     out_of_trajectory_threshold: 0.2

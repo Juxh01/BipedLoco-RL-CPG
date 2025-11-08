@@ -12,7 +12,7 @@ This project investigates the integration of Central Pattern Generators (CPGs) w
 - Integration with dm_control physics simulation
 - Comprehensive evaluation metrics using rliable
 
-## 🚀 Quick Start
+# Quick Start
 
 ### Prerequisites
 - Python ~3.11
@@ -21,25 +21,36 @@ This project investigates the integration of Central Pattern Generators (CPGs) w
 
 ### Installation
 
+On a laptop/desktop (with a normal display) you probably want the regular OpenCV wheels
+(they include GUI support). Run:
+
 ```bash
 # Clone the repository
 git clone https://github.com/Juxh01/BipedLoco-RL-CPG.git
 cd BipedLoco-RL-CPG
 
-# Setup uv
+# Setup uv virtual env (recommended)
 uv venv --python 3.11
 
 # Activate environment (linux)
 source .venv/bin/activate
 
-# Install dependencies and setup development environment
+# Install dependencies and setup development environment (desktop OpenCV)
 make install
 ```
 
-This will:
-- Install SWIG dependency
-- Install the project in development mode with all dependencies
-- Set up pre-commit hooks for code quality
+On a headless cloud worker (ucloud) you should use the headless OpenCV build to avoid
+GUI/X11 dependencies. Use the `ucloud` goal along with `install`:
+
+```bash
+make install ucloud
+```
+
+Notes:
+- `make install` will install the `dev` extra plus the `desktop` extra 
+- `make install ucloud` will install the `dev` extra plus the `ucloud` extra 
+
+The install step also installs SWIG and sets up pre-commit hooks.
 
 ### Usage
 
@@ -60,3 +71,5 @@ make build
 ### TODOs
 
 - Move sensor changes in 26D-BASELINE out of myoassist Repo 
+- Ensure, that both approach have the same information at hand (e.g. observation space)
+- Normalize observations space (VecNormalize)
