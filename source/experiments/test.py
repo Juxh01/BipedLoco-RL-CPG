@@ -48,9 +48,9 @@ def main(cfg: DictConfig) -> float:
         n_eval_episodes=20,
     )
 
-    # Regelmäßige Schnappschüsse (z. B. alle 1m/num_envs Schritte)
+    # Regelmäßige Schnappschüsse (z. B. alle 500k/num_envs Schritte)
     ckpt_cb = CheckpointCallback(
-        save_freq=10 * eval_freq,  # gleiche Frequenz wie Eval oder was dir passt
+        save_freq=5 * eval_freq,  # gleiche Frequenz wie Eval oder was dir passt
         save_path="checkpoints/regular",  # Ordner für laufende Snapshots
         name_prefix="ppo",
     )
@@ -78,7 +78,7 @@ def main(cfg: DictConfig) -> float:
         tensorboard_log="./tensorboard",
     )
 
-    model.learn(total_timesteps=int(10000000), progress_bar=True, callback=callbacks)
+    model.learn(total_timesteps=int(20000000), progress_bar=True, callback=callbacks)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model.save(f"checkpoints/final/ppo_final/agent-{timestamp}")
