@@ -9,7 +9,7 @@ defaults:
 module:
   side: r          # r or l
   joint: hip       # hip | knee | ankle
-  drive: 1.5        # descending drive D applied to both E and F of the selected RG (reduced to avoid depolarization block)
+  drive: 0.1      # descending drive D applied to both E and F of the selected RG (reduced to avoid depolarization block)
 
 # Simulation parameters
 sim:
@@ -96,8 +96,8 @@ hydra:
       #neuron.k_m: interval(1.0, 15.0)
       #neuron.V_half_h: interval(-70.0, -20.0)
       #neuron.k_h: interval(-15.0, -1.0)
-      neuron.tau_h_min: interval(0.001, 30.0)
-      neuron.tau_h_max: interval(30.0, 1500.0)
+      neuron.tau_h_min: interval(0.001, 0.5)
+      neuron.tau_h_max: interval(0.5, 2)
       #neuron.V_tau: interval(-70.0, -20.0)
       #neuron.k_tau: interval(1.0, 15.0)
       neuron.V_th_syn: interval(-60.0, -20.0)
