@@ -111,7 +111,7 @@ def main(cfg: DictConfig) -> float:
     print(f"Environment Obs: {env.observation_space}")
     print(f"Environment Act: {env.action_space}")
 
-    total_batch = 65536 // 2
+    total_batch = 65536
     n_steps = int(total_batch / cfg.env.num_envs)
 
     model = PPO(
@@ -121,6 +121,8 @@ def main(cfg: DictConfig) -> float:
         verbose=1,
         n_steps=n_steps,
         tensorboard_log="./tensorboard",
+        batch_size=256,
+        learning_rate=2.5e-4,
     )
 
     model.learn(
