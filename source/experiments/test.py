@@ -64,7 +64,6 @@ def main(cfg: DictConfig) -> float:
     # Falls dein Factory immer VecEnv baut: erzwinge num_envs=1 / eval_mode=True
     eval_cfg = cast(Dict[str, Any], cfg).copy()
     eval_cfg["env"]["num_envs"] = 1
-    eval_cfg["env"]["use_observation_normalization"] = False
     eval_cfg["env"]["use_reward_normalization"] = False
     # Verhindere, dass _make_single_env einen Monitor hinzufügt (macht VecMonitor)
     eval_cfg["env"]["log_dir"] = None
@@ -73,10 +72,9 @@ def main(cfg: DictConfig) -> float:
     eval_env = VecMonitor(eval_env)
 
     norm_obs = cfg.env.get("use_observation_normalization", True)
-    norm_reward = cfg.env.get("use_reward_normalization", False)
 
-    if norm_obs or norm_reward:
-        eval_env = VecNormalize(eval_env, norm_obs=norm_obs, norm_reward=norm_reward)
+    if norm_obs:
+        eval_env = VecNormalize(eval_env, norm_obs=norm_obs, norm_reward=False)
 
     # eval_freq: bei VecEnv ~timesteps/num_envs
     num_envs = cfg.env.num_envs
