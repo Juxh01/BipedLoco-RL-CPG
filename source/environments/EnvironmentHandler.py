@@ -15,8 +15,6 @@ try:
 except Exception as e:
     print(f"[EnvRegistry] Import of myoassist-Registry failed: {e} ")
 
-# ---- ganz oben im Modul (Top-Level!) ----
-
 
 from myosuite.utils import gym
 from stable_baselines3 import PPO, SAC
@@ -240,16 +238,8 @@ def _seed_random_generators(seed: int):
     return SubprocVecEnv([make_thunk(i) for i in range(num_envs)], start_method="spawn") """
 
 
-# ---- Ersatz für deine _make_vec_env ----
-def _make_vec_env(env_cfg: Dict[str, Any], num_envs: int):
-    """SubprocVecEnv, spawn-sicher (ohne innere Closures)."""
-    base_seed = int(env_cfg.get("seed", 0))
-    plain_cfg = _to_plain_dict(env_cfg)  # <- garantiert picklable
-    factories = [_EnvFactory(plain_cfg, base_seed, i) for i in range(num_envs)]
-    return SubprocVecEnv(factories, start_method="spawn")
-
-
-# ---- Ersatz für deine _make_vec_env ----
+# TODO: Normalize observation
+# ---- Ersatz für _make_vec_env ----
 def _make_vec_env(env_cfg: Dict[str, Any], num_envs: int):
     """SubprocVecEnv, spawn-sicher (ohne innere Closures)."""
     base_seed = int(env_cfg.get("seed", 0))
