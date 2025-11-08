@@ -19,7 +19,7 @@ except Exception as e:
 from myosuite.utils import gym
 from stable_baselines3 import PPO, SAC
 from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.vec_env import SubprocVecEnv
+from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor, VecNormalize
 
 from source.environments.CPG_wrapper import CPGWrapper
 from source.environments.myoassist.rl_train.train.train_configs.config import (
@@ -69,7 +69,7 @@ class _EnvFactory:
         # Wichtig: _make_single_env muss ebenfalls Top-Level definiert sein!
         from .EnvironmentHandler import _make_single_env
 
-        seed = self.base_seed + self.rank + 1000
+        seed = self.base_seed * 64 + self.rank + 1000
         cfg = _sanitize_cfg(self.base_cfg)
         cfg["seed"] = seed
 
@@ -245,7 +245,8 @@ def _make_vec_env(env_cfg: Dict[str, Any], num_envs: int):
     base_seed = int(env_cfg.get("seed", 0))
     plain_cfg = _to_plain_dict(env_cfg)  # <- garantiert picklable
     factories = [_EnvFactory(plain_cfg, base_seed, i) for i in range(num_envs)]
-    return SubprocVecEnv(factories, start_method="spawn")
+    vec_env = SubprocVecEnv(factories, start_method="spawn")
+    return vec_env
 
 
 # Einfache Algo-Registry. Du kannst hier weitere Ansätze hinterlegen.
@@ -327,7 +328,25 @@ class EnvironmentHandler:
 
         if num_envs <= 1 or bool(env_cfg.get("render", False)):
             return _make_single_env(env_cfg)
-        return _make_vec_env(env_cfg, num_envs=num_envs)
+
+        env = _make_vec_env(env_cfg, num_envs=num_envs)
+        # VecMonitor for episode tracking
+        env = VecMonitor(env)
+        # Env normalization wrappers
+        normalize_reward = bool(env_cfg.get("use_reward_normalization", False))
+        normalize_observation = bool(env_cfg.get("use_observation_normalization", True))
+        if normalize_observation or normalize_reward:
+            vec_norm_path = env_cfg.get("vec_norm_path", None)
+            if vec_norm_path is not None:
+                print(f"[EnvHandler] Loading VecNormalize stats from: {vec_norm_path}")
+                env = VecNormalize.load(vec_norm_path, env)
+            else:
+                env = VecNormalize(
+                    env,
+                    norm_obs=normalize_observation,
+                    norm_reward=normalize_reward,
+                )
+        return env
 
     @staticmethod
     def create_rl_model(config: Dict[str, Any], env):
