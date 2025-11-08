@@ -1,6 +1,6 @@
 # Example configuration file for BipedLoco-PPO-CPG
 
-total_timesteps: 1.0e+7
+total_timesteps: 3.0e+7
 evaluate_param_list:
   - num_timesteps: 200
     min_target_velocity: 1.25
