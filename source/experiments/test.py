@@ -90,7 +90,9 @@ def main(cfg: DictConfig) -> float:
         eval_freq=eval_freq,  # nach Bedarf
         deterministic=True,
         n_eval_episodes=20,
-        callback_after_eval=SaveVecNormalizeStatsCallback(save_path="checkpoints/best"),
+        callback_on_new_best=SaveVecNormalizeStatsCallback(
+            save_path="checkpoints/best"
+        ),
     )
 
     # Regelmäßige Schnappschüsse (z. B. alle 500k/num_envs Schritte)
@@ -98,6 +100,7 @@ def main(cfg: DictConfig) -> float:
         save_freq=4 * eval_freq,  # gleiche Frequenz wie Eval oder was dir passt
         save_path="checkpoints/regular",  # Ordner für laufende Snapshots
         name_prefix="ppo",
+        save_vecnormalize=True,
     )
     callbacks = CallbackList([eval_cb, ckpt_cb])
 
