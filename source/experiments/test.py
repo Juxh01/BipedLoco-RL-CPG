@@ -6,7 +6,7 @@ from pathlib import Path
 
 import hydra
 from omegaconf import DictConfig
-from stable_baselines3 import SAC
+from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import (
     BaseCallback,
     CallbackList,
@@ -117,12 +117,11 @@ def main(cfg: DictConfig) -> float:
     total_batch = 65536
     n_steps = int(total_batch / cfg.env.num_envs)
 
-    model = SAC(
+    model = PPO(
         "MlpPolicy",
         env,
         device="cpu",
         verbose=1,
-        train_freq=(50, "step"),
         n_steps=n_steps,
         tensorboard_log="./tensorboard",
         batch_size=512,
