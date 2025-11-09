@@ -122,7 +122,7 @@ def main(cfg: DictConfig) -> float:
         env,
         device="cpu",
         verbose=1,
-        train_freq=(1, "episode"),
+        train_freq=(50, "step"),
         n_steps=n_steps,
         tensorboard_log="./tensorboard",
         batch_size=512,
