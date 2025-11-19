@@ -114,19 +114,22 @@ def main(cfg: DictConfig) -> float:
     print(f"Environment Obs: {env.observation_space}")
     print(f"Environment Act: {env.action_space}")
 
-    total_batch = 65536
-    n_steps = int(total_batch / cfg.env.num_envs)
+    # total_batch = 65536
+    # n_steps = int(total_batch / cfg.env.num_envs)
 
     model = PPO(
         "MlpPolicy",
         env,
         device="cpu",
         verbose=1,
-        n_steps=n_steps,
+        n_steps=512,
         tensorboard_log="./tensorboard",
-        batch_size=512,
-        learning_rate=2.5e-4,
-        use_sde=True,
+        batch_size=4096,
+        ent_coef=0.001,
+        n_epochs=30,
+        learning_rate=1.0e-4,
+        use_sde=False,
+        target_kl=0.01,
     )
 
     model.learn(

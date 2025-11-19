@@ -1,6 +1,6 @@
 # Example configuration file for BipedLoco-PPO-CPG
 
-total_timesteps: 1.0e+7
+total_timesteps: 1.0e+8
 evaluate_param_list:
   - num_timesteps: 200
     min_target_velocity: 1.25
@@ -17,6 +17,7 @@ env:
   num_envs: 16
   seed: 10
   model_path: "models/26muscle_3D/myoLeg26_BASELINE.xml"
+  reference_data_path: "source/environments/myoassist/rl_train/reference_data/segmented.npz"
   render: false
   log_dir: "./runs"
   is_evaluate_mode: false
@@ -141,13 +142,31 @@ env:
       - l_mtp_sensor
     terrain_type: flat
     reward_keys_and_weights:
-      forward_reward: 2.0
+      qpos_imitation_rewards:
+        pelvis_ty: 0.1
+        pelvis_tilt: 1.0
+        hip_flexion_l: 0.2
+        hip_flexion_r: 0.2
+        knee_angle_l: 1.0
+        knee_angle_r: 1.0
+        ankle_angle_l: 0.2
+        ankle_angle_r: 0.2     
+      qvel_imitation_rewards": 
+        pelvis_ty: 0.1
+        pelvis_tilt: 0.1
+        hip_flexion_l: 0.2
+        hip_flexion_r: 0.2
+        knee_angle_l: 0.1
+        knee_angle_r: 0.1
+        ankle_angle_l: 0.1
+        ankle_angle_r: 0.1
+      forward_reward: 0.5
       muscle_activation_penalty: 0.1
       muscle_activation_diff_penalty: 0.1
       footstep_delta_time: 0.0
       average_velocity_per_step: 0.0
-      muscle_activation_penalty_per_step: 0.01
-      joint_constraint_force_penalty: 0.1
+      muscle_activation_penalty_per_step: 0.0
+      joint_constraint_force_penalty: 0.0
       foot_force_penalty: 0.1
     custom_max_episode_steps: 1000
     

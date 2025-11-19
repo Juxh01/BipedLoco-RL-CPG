@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, get_args, get_origin
 
+import json
 import os
 import random
 import subprocess
 from dataclasses import fields
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -14,7 +16,6 @@ try:
     import source.environments.myoassist.rl_train.envs as _ensure_env_registration  # noqa: F401
 except Exception as e:
     print(f"[EnvRegistry] Import of myoassist-Registry failed: {e} ")
-
 
 from myosuite.utils import gym
 from stable_baselines3 import PPO, SAC
@@ -152,11 +153,62 @@ def _select_env_params_type(env_id: str):
     return TrainSessionConfigBase.EnvParams
 
 
+def _load_reference_data(config):
+    # Check if config has reference_data_path attribute
+    print("===================================================================")
+    if "reference_data_path" not in config:
+        print("X")
+        print("No reference data path provided.")
+        print("===================================================================")
+        return None
+
+    if not config.get("reference_data_path"):
+        print("No reference data path provided.")
+        print("===================================================================")
+        return None
+
+    config["reference_data_path"] = (
+        Path(__file__).parents[2] / config["reference_data_path"]
+    )
+    print(f"Loading reference data from {config['reference_data_path']}")
+    print("===================================================================")
+    if config["reference_data_path"].name.endswith(".npz"):
+        ref_data_npz = np.load(config["reference_data_path"], allow_pickle=True)
+        ref_data_dict = {key: ref_data_npz[key].item() for key in ref_data_npz.files}
+    elif config["reference_data_path"].name.endswith(".json"):
+        with open(config["reference_data_path"], "r") as f:
+            ref_data_dict = json.load(f)
+    else:
+        raise ValueError("Unsupported file format. Please use either .npz or .json.")
+
+    if "resampled_series_data" not in ref_data_dict:
+        ref_data_dict["resampled_series_data"] = {}
+        for key in ref_data_dict["series_data"].keys():
+            original_data_length = len(ref_data_dict["series_data"][key])
+            original_sample_rate = ref_data_dict["metadata"]["sample_rate"]
+            original_x = np.linspace(0, original_data_length - 1, original_data_length)
+
+            new_sample_rate = config.env_params.control_framerate
+            new_length = int(
+                original_data_length * new_sample_rate / original_sample_rate
+            )
+            new_x = np.linspace(0, original_data_length - 1, new_length)
+            ref_data_dict["series_data"][key] = np.interp(
+                new_x, original_x, ref_data_dict["series_data"][key]
+            )
+            ref_data_dict["metadata"]["resampled_data_length"] = new_length
+            ref_data_dict["metadata"]["resampled_sample_rate"] = new_sample_rate
+
+    return ref_data_dict
+
+
 def _make_single_env(env_cfg: Dict[str, Any]):
     """Creates a single Gym environment based on the provided config."""
     _require(env_cfg, "env_id", "env")
     _require(env_cfg, "seed", "env")
     _require(env_cfg, "model_path", "env")
+
+    ref_data_dict = _load_reference_data(env_cfg)
 
     env_id = str(env_cfg["env_id"])
     _seed_random_generators(int(env_cfg["seed"]))
@@ -172,6 +224,10 @@ def _make_single_env(env_cfg: Dict[str, Any]):
         "env_params": env_params_obj,
         "is_evaluate_mode": bool(env_cfg.get("is_evaluate_mode", False)),
     }
+
+    # Add reference_data only if it exists
+    if ref_data_dict is not None:
+        gym_make_args["reference_data"] = ref_data_dict
 
     env = gym.make(env_id, **gym_make_args).unwrapped  # type: ignore[call-arg]
 

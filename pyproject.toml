@@ -41,6 +41,7 @@ dependencies = [
     "mujoco >= 2.3.6",
     "myosuite",
     "deprl",
+    "h5py>=3.10.0",
 ]
 
 [project.optional-dependencies]
