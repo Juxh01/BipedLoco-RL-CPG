@@ -23,7 +23,11 @@ timestamp = "20251104_120301"
 # __NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia python source/experiments/play.py
 
 
-@hydra.main(config_path=str(CONFIG_DIR), config_name="example.yaml", version_base="1.1")
+@hydra.main(
+    config_path=str(CONFIG_DIR),
+    config_name="example_imitation.yaml",
+    version_base="1.1",
+)
 def main(cfg: DictConfig) -> float:
     # Cast Hydra DictConfig to a plain dict for type checkers; at runtime it's mapping-compatible
     cfg.env.num_envs = 1
@@ -38,7 +42,7 @@ def main(cfg: DictConfig) -> float:
         os.path.join(
             hydra.utils.get_original_cwd(),
             "Training",
-            "PPO_1",
+            "PPO_5",
             "best_model_vecnormalize.pkl",
         ),
         env,
@@ -56,7 +60,7 @@ def main(cfg: DictConfig) -> float:
     print(f"Environment Act: {env.action_space}")
 
     dir = os.path.join(
-        hydra.utils.get_original_cwd(), "Training", "PPO_1", "best_model.zip"
+        hydra.utils.get_original_cwd(), "Training", "PPO_5", "best_model.zip"
     )
 
     model = PPO.load(dir, env=stats_env, device="cpu", eval_mode=True)

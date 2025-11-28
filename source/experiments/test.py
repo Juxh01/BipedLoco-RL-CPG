@@ -114,15 +114,15 @@ def main(cfg: DictConfig) -> float:
     print(f"Environment Obs: {env.observation_space}")
     print(f"Environment Act: {env.action_space}")
 
-    # total_batch = 65536
-    # n_steps = int(total_batch / cfg.env.num_envs)
+    total_batch = 65536
+    n_steps = int(total_batch / cfg.env.num_envs)
 
     model = PPO(
         "MlpPolicy",
         env,
         device="cpu",
         verbose=1,
-        n_steps=512,
+        n_steps=n_steps,
         tensorboard_log="./tensorboard",
         batch_size=4096,
         ent_coef=0.001,

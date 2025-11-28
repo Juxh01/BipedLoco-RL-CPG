@@ -15,33 +15,48 @@ keywords = [
     "Neuroinspired Control",
 ]
 
-
 dependencies = [
-    "numpy",
-    "torch",
-    "tqdm",
-    "matplotlib",
-    "rich",
-    "jupyterlab",
-    "tensorboard",
-    "hydra-core",
-    "hydra-joblib-launcher",
-    "hydra-colorlog",
-    "hydra-optuna-sweeper",
-    "omegaconf",
-    "rliable",
-    "hypersweeper",
-    "optuna",
-    "cmaes",
-    "setuptools<81",
-    "pytest>=8.4.1",
-    "gymnasium",
+    "click",
+    "sk-video",
+    "gymnasium==0.29.1",
+    "termcolor",
+    "flatten_dict",
+    "h5py",
+    "numpy==2.2.6",
+    "mujoco==3.3.3",
+    "dm-control==1.0.31",
+    "Pillow",
+    "pink-noise-rl",
+    "packaging",
+    "gitpython",
+
+
     "stable-baselines3",
-    "scipy",
-    "mujoco >= 2.3.6",
-    "myosuite",
-    "deprl",
-    "h5py>=3.10.0",
+    "stable-baselines3[extra]",
+
+    "mediapy",
+
+    "tensorboard",
+
+    "cma==4.0.0",
+    "tqdm",
+    "opencv-python==4.11.0.86",
+    "imageio[ffmpeg]==2.37.0",
+    "scikit-video==1.1.11",
+    "h5py==3.12.1",
+    "openpyxl==3.1.5",
+    "absl-py==2.1.0",
+    "setuptools",
+    "tk",
+
+    "hydra-core",
+    "hydra-submitit-launcher",
+    "hydra-ray-launcher",
+    "hydra-colorlog",
+    "colorlog",
+    "submitit",
+    "ray[default]",
+    "omegaconf",
 ]
 
 [project.optional-dependencies]
@@ -58,7 +73,7 @@ desktop = ["opencv-python"]
 ucloud = ["opencv-python-headless==4.10.0.84"]
 
 [tool.setuptools]
-packages = ["source", "rl_train", "myoassist_utils", "ctrl_optim"]
+packages = ["source", "rl_train", "myoassist_utils", "ctrl_optim", "myosuite"]
 
 [tool.setuptools.package-dir]
 source = "source"

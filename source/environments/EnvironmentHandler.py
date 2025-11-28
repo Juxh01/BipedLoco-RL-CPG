@@ -157,7 +157,6 @@ def _load_reference_data(config):
     # Check if config has reference_data_path attribute
     print("===================================================================")
     if "reference_data_path" not in config:
-        print("X")
         print("No reference data path provided.")
         print("===================================================================")
         return None
@@ -188,7 +187,7 @@ def _load_reference_data(config):
             original_sample_rate = ref_data_dict["metadata"]["sample_rate"]
             original_x = np.linspace(0, original_data_length - 1, original_data_length)
 
-            new_sample_rate = config.env_params.control_framerate
+            new_sample_rate = config["env_params"]["control_framerate"]
             new_length = int(
                 original_data_length * new_sample_rate / original_sample_rate
             )
@@ -383,7 +382,8 @@ class EnvironmentHandler:
         env_cfg["model_path"] = model_path
 
         if num_envs <= 1 or bool(env_cfg.get("render", False)):
-            return _make_single_env(env_cfg)
+            plain_cfg = _to_plain_dict(env_cfg)
+            return _make_single_env(plain_cfg)
 
         env = _make_vec_env(env_cfg, num_envs=num_envs)
         # VecMonitor for episode tracking

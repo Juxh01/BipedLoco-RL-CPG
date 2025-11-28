@@ -1,0 +1,125 @@
+# Example configuration file for BipedLoco-PPO-CPG
+
+total_timesteps: 1.0e+7
+evaluate_param_list:
+  - num_timesteps: 200
+    min_target_velocity: 1.25
+    max_target_velocity: 1.25
+    target_velocity_period: 2
+    velocity_mode: UNIFORM
+    cam_type: follow
+    cam_distance: 2.5
+    visualize_activation: true
+logger_params:
+  logging_frequency: 8
+env:
+  env_id: "myoAssistLegImitation-v0"
+  num_envs: 16
+  seed: 10
+  model_path: "models/22muscle_2D/myoLeg22_2D_BASELINE.xml"
+  reference_data_path: "source/environments/myoassist/rl_train/reference_data/short_reference_gait.npz"
+  render: false
+  log_dir: "./runs"
+  is_evaluate_mode: true
+  use_cpg_wrapper: false
+  use_observation_normalization: true
+  use_reward_normalization: true
+  vec_norm_path: null
+  # Configure bounds for RL action components in the CPG wrapper (for HPO)
+  # D, Gw, Gc are used directly. theta_Ia/theta_Ib are mapped via exp(theta) -> positive gains.
+  cpg_action_bounds:
+    D: [0.0, 5.0]
+    Gw: [0.0, 3.0]
+    Gc: [0.0, 3.0]
+    theta_Ia: [-5.0, 0.0]
+    theta_Ib: [-5.0, 0.0]
+  # If true, apply fixed sign masks to K gains (Ia: +1 excitatory, Ib: -1 inhibitory). If false, both are positive.
+  cpg_use_sign_masks: true
+  env_params:
+    safe_height: 0.7
+    out_of_trajectory_threshold: 0.2
+    flag_random_ref_index: true
+    control_framerate: 30
+    physics_sim_framerate: 1200
+    min_target_velocity: 0.5
+    max_target_velocity: 2.0
+    min_target_velocity_period: 2
+    max_target_velocity_period: 10
+    enable_lumbar_joint: false
+    lumbar_joint_fixed_angle: -0.13
+    lumbar_joint_damping_value: 0.05
+    observation_joint_pos_keys:
+      - ankle_angle_l
+      - ankle_angle_r
+      - hip_flexion_l
+      - hip_flexion_r
+      - knee_angle_l
+      - knee_angle_r
+      - pelvis_tilt
+      - pelvis_ty
+    observation_joint_vel_keys:
+      - ankle_angle_l
+      - ankle_angle_r
+      - hip_flexion_l
+      - hip_flexion_r
+      - knee_angle_l
+      - knee_angle_r
+      - pelvis_tilt
+      - pelvis_tx
+      - pelvis_ty
+    observation_sensor_keys:
+      - r_foot
+      - l_foot
+      - r_toes
+      - l_toes
+    joint_limit_sensor_keys:
+      - r_knee_sensor
+      - l_knee_sensor
+      - r_hip_sensor
+      - l_hip_sensor
+      - r_ankle_sensor
+      - l_ankle_sensor
+      - r_mtp_sensor
+      - l_mtp_sensor
+    terrain_type: flat
+    reward_keys_and_weights:
+      qpos_imitation_rewards:
+        pelvis_ty: 0.1
+        pelvis_tilt: 1.0
+        hip_flexion_l: 0.2
+        hip_flexion_r: 0.2
+        knee_angle_l: 1.0
+        knee_angle_r: 1.0
+        ankle_angle_l: 0.2
+      qvel_imitation_rewards: 
+        pelvis_ty: 0.1
+        pelvis_tilt: 0.1
+        hip_flexion_l: 0.2
+        hip_flexion_r: 0.2
+        knee_angle_l: 0.1
+        knee_angle_r: 0.1
+        ankle_angle_l: 0.1
+        ankle_angle_r: 0.1
+      end_effector_imitation_reward: 0.0
+      forward_reward: 1.0
+      muscle_activation_penalty: 0.1
+      muscle_activation_diff_penalty: 0.1
+      footstep_delta_time: 0.0
+      average_velocity_per_step: 0.0
+      muscle_activation_penalty_per_step: 0.0
+      joint_constraint_force_penalty: 1.0
+      foot_force_penalty: 0.5
+    custom_max_episode_steps: 1000
+    reference_data_keys:
+      - ankle_angle_l
+      - ankle_angle_r
+      - hip_flexion_l
+      - hip_flexion_r
+      - knee_angle_l
+      - knee_angle_r
+      - pelvis_tilt
+      - pelvis_ty
+      
+
+    
+
