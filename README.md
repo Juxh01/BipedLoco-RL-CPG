@@ -16,7 +16,7 @@ This project investigates the integration of Central Pattern Generators (CPGs) w
 - Implementation of a hierarchical CPG network based on differential equations as a bioinspired prior in improve sample efficiency
 - Comprehensive evaluation metrics using rliable
 
-## 🚀 Quick Start
+# Quick Start
 
 ### Prerequisites
 - Python ~3.11
@@ -25,25 +25,36 @@ This project investigates the integration of Central Pattern Generators (CPGs) w
 
 ### Installation
 
+On a laptop/desktop (with a normal display) you probably want the regular OpenCV wheels
+(they include GUI support). Run:
+
 ```bash
 # Clone the repository
 git clone https://github.com/Juxh01/BipedLoco-RL-CPG.git
 cd BipedLoco-RL-CPG
 
-# Setup uv
+# Setup uv virtual env (recommended)
 uv venv --python 3.11
 
 # Activate environment (linux)
 source .venv/bin/activate
 
-# Install dependencies and setup development environment
+# Install dependencies and setup development environment (desktop OpenCV)
 make install
 ```
 
-This will:
-- Install SWIG dependency
-- Install the project in development mode with all dependencies
-- Set up pre-commit hooks for code quality
+On a headless cloud worker (ucloud) you should use the headless OpenCV build to avoid
+GUI/X11 dependencies. Use the `ucloud` goal along with `install`:
+
+```bash
+make install ucloud
+```
+
+Notes:
+- `make install` will install the `dev` extra plus the `desktop` extra 
+- `make install ucloud` will install the `dev` extra plus the `ucloud` extra 
+
+The install step also installs SWIG and sets up pre-commit hooks.
 
 ### Usage
 

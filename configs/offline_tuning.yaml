@@ -1,0 +1,107 @@
+# Use the optuna sweeper plugin via defaults and configure it under hydra.sweeper
+defaults:
+  - override hydra/sweeper: optuna
+  - override hydra/launcher: joblib
+# Offline optimization of NeuronParams for a single 2-layer CPG module (no external feedback)
+# Executed by source/experiments/offline_tuning.py via Hydra + Optuna (CMA-ES)
+
+# Select module to optimize (one joint, one side)
+module:
+  side: r          # r or l
+  joint: hip       # hip | knee | ankle
+  drive: 0.1      # descending drive D applied to both E and F of the selected RG (reduced to avoid depolarization block)
+
+# Simulation parameters
+sim:
+  dt: 0.005          # s
+  substeps: 1          # CPG substeps per env step (already explicit dt here)
+  warmup_time: 0.01   # seconds to discard before measuring metrics
+  measure_time: 15.0   # seconds to measure metrics
+
+# Loss targets and weights
+loss:
+  # Frequency target in Hz (for primary oscillation frequency)
+  freq_target: 1.0
+  # If no oscillation is detected or metrics invalid
+  invalid_penalty: 10.0
+
+  # Hierarchical multi-objective loss parameters
+  variance_threshold: 1.0e-5   # gate for detecting fixed points
+  invalid_penalty_wall: 1000.0 # large base penalty for non-oscillating solutions
+  w_phase: 10.0                # weight for anti-phase correlation loss
+  w_freq: 1.0                  # weight for frequency loss
+
+# Search space for NeuronParams
+# Keep bounds modest initially; expand as needed.
+neuron:
+  # Fixed parameters (not optimized)
+  Er: -60.0  # resting potential  (inactivation)
+  ENa: 50.0  # excitatory reversal potential (activation)
+  V_half_m: -40.0  # half-activation voltage (m) (activation threshold)
+  k_m: 5.0  # sharpness of m activation curve -> low k_m = steeper curve
+  V_half_h: -35.0 # half-inactivation voltage (h) (inactivation threshold) (h=0.5) (neuron is half fatigued here)
+  k_h: -5.0 # sharpness of h inactivation curve -> high |k_h| = steeper curve (h increases when voltage increases)
+  V_tau: -50.0 # voltage for tau
+  k_tau: 5.0 # sharpness of tau activation curve
+
+  # Defaults mirror NeuronParams dataclass; hydra-optuna-sweeper will override these
+  Cm: 1.0 # Membrane Capacitance
+  Gm: 1.0  # membrane conductance
+  GNa: 1.5  # sodium conductance -> steers current amplitude into neuron
+  tau_h_min: 5.0 # minimum time constant for h (time constant for fatigue)
+  tau_h_max: 80.0 # maximum time constant for h (recovery time)
+  V_th_syn: -40.0 # threshold voltage for synaptic activation (inhibitory/excitatory)
+  k_syn: 4.0 # sharpness of synaptic activation curve 
+
+# Fixed CPG connectivity during offline tuning (kept simple and isolated)
+connectivity:
+  RG_mutual_inh: 1.2   # E<->F within RG
+  PF_mutual_inh: 0.8   # E<->F within PF
+  Gc: 1.0              # RG->PF for the selected joint
+  disable_inter_joint: true  # zero-out Gw_lr_hip, Gw_H_to_K, Gw_K_to_A and unused Gc
+
+# Optuna study settings
+optuna:
+  n_trials: 400     # number of trials for the sweeper
+  seed: 123
+
+# Output
+output:
+  save_dir: outputs/offline_tuning
+  save_best_params: true
+  save_time_series: false  # set true to dump csv/npz of last evaluated signals
+  plot_signals: true       # save plots for each run (x_rg and rg_e/rg_f)
+  plot_filename: signals.png
+
+
+
+hydra:
+  sweeper:
+    _target_: hydra_plugins.hydra_optuna_sweeper.optuna_sweeper.OptunaSweeper
+    study_name: custom-search-space
+    storage: null
+    direction: minimize
+    n_trials: ${optuna.n_trials}
+    n_jobs: 8
+    sampler: 
+      _target_: optuna.samplers.TPESampler
+      seed: ${optuna.seed}      
+    params:
+      neuron.Cm: interval(0.001, 5.0)
+      neuron.Gm: interval(0.001, 5.0)
+      #neuron.Er: interval(-80.0, -40.0)
+      #neuron.ENa: interval(20.0, 80.0)
+      neuron.GNa: interval(0.001, 5.0)
+      #neuron.V_half_m: interval(-60.0, -20.0)
+      #neuron.k_m: interval(1.0, 15.0)
+      #neuron.V_half_h: interval(-70.0, -20.0)
+      #neuron.k_h: interval(-15.0, -1.0)
+      neuron.tau_h_min: interval(0.001, 0.5)
+      neuron.tau_h_max: interval(0.5, 2)
+      #neuron.V_tau: interval(-70.0, -20.0)
+      #neuron.k_tau: interval(1.0, 15.0)
+      neuron.V_th_syn: interval(-60.0, -20.0)
+      neuron.k_syn: interval(0.001, 15.0)
+  launcher:
+    _target_: hydra_plugins.hydra_joblib_launcher.joblib_launcher.JoblibLauncher
+    n_jobs: 8

@@ -25,18 +25,22 @@ dependencies = [
     "jupyterlab",
     "tensorboard",
     "hydra-core",
-    "hydra-submitit-launcher",
-    "hydra-ray-launcher",
+    "hydra-joblib-launcher",
     "hydra-colorlog",
+    "hydra-optuna-sweeper",
     "omegaconf",
     "rliable",
     "hypersweeper",
+    "optuna",
+    "cmaes",
     "setuptools<81",
     "pytest>=8.4.1",
     "gymnasium",
-    "shimmy[dm-control]",
     "stable-baselines3",
     "scipy",
+    "mujoco >= 2.3.6",
+    "myosuite",
+    "deprl",
 ]
 
 [project.optional-dependencies]
@@ -48,8 +52,18 @@ dev = ["pytest>=4.6",
     "pre-commit",
     "isort"]
 
+# Extra sets for different deployment targets
+desktop = ["opencv-python"]
+ucloud = ["opencv-python-headless==4.10.0.84"]
+
 [tool.setuptools]
-packages = ["source"]
+packages = ["source", "rl_train", "myoassist_utils", "ctrl_optim"]
+
+[tool.setuptools.package-dir]
+source = "source"
+rl_train = "source/environments/myoassist/rl_train"
+myoassist_utils = "source/environments/myoassist/myoassist_utils"
+ctrl_optim = "source/environments/myoassist/ctrl_optim"
 
 [tool.isort]
 py_version = "38"
@@ -67,6 +81,7 @@ sections = [
     "LOCALFOLDER",
 ] # section ordering
 multi_line_output = 3 # https://pycqa.github.io/isort/docs/configuration/multi_line_output_modes.html
+skip = ["source/environments/myoassist/"]
 
 [tool.pydocstyle]
 convention = "numpy"
@@ -88,7 +103,7 @@ add-ignore = [# http://www.pydocstyle.org/en/stable/error_codes.html
 ]
 
 [tool.ruff]
-extend-exclude = []
+extend-exclude = ["source/environments/myoassist/"]
 
 [tool.ruff.lint]
 ignore = [

@@ -1,1 +1,154 @@
-# Example configuration file for BipedLoco-RL-CPG
+# Example configuration file for BipedLoco-PPO-CPG
+
+total_timesteps: 1.0e+7
+evaluate_param_list:
+  - num_timesteps: 200
+    min_target_velocity: 1.25
+    max_target_velocity: 1.25
+    target_velocity_period: 2
+    velocity_mode: UNIFORM
+    cam_type: follow
+    cam_distance: 2.5
+    visualize_activation: true
+logger_params:
+  logging_frequency: 8
+env:
+  env_id: "myoAssistLeg-v0"
+  num_envs: 16
+  seed: 10
+  model_path: "models/26muscle_3D/myoLeg26_BASELINE.xml"
+  render: false
+  log_dir: "./runs"
+  is_evaluate_mode: false
+  use_cpg_wrapper: false
+  use_observation_normalization: true
+  use_reward_normalization: true
+  vec_norm_path: null
+  # Configure bounds for RL action components in the CPG wrapper (for HPO)
+  # D, Gw, Gc are used directly. theta_Ia/theta_Ib are mapped via exp(theta) -> positive gains.
+  cpg_action_bounds:
+    D: [0.0, 5.0]
+    Gw: [0.0, 3.0]
+    Gc: [0.0, 3.0]
+    theta_Ia: [-5.0, 0.0]
+    theta_Ib: [-5.0, 0.0]
+  # If true, apply fixed sign masks to K gains (Ia: +1 excitatory, Ib: -1 inhibitory). If false, both are positive.
+  cpg_use_sign_masks: true
+  env_params:
+    safe_height: 0.7
+    out_of_trajectory_threshold: 0.2
+    flag_random_ref_index: true
+    control_framerate: 30
+    physics_sim_framerate: 1200
+    min_target_velocity: 0.5
+    max_target_velocity: 2.0
+    min_target_velocity_period: 2
+    max_target_velocity_period: 10
+    enable_lumbar_joint: false
+    lumbar_joint_fixed_angle: -0.13
+    lumbar_joint_damping_value: 0.05
+    observation_joint_pos_keys:
+      - ankle_angle_l
+      - ankle_angle_r
+      - hip_flexion_l
+      - hip_flexion_r
+      - knee_angle_l
+      - knee_angle_r
+      - pelvis_tilt
+      - pelvis_ty
+      # New 
+      - mtp_angle_l
+      - mtp_angle_r
+      - hip_adduction_l
+      - hip_adduction_r
+      - hip_rotation_l
+      - hip_rotation_r
+      - pelvis_tx
+      - pelvis_tz
+      - pelvis_list
+      - pelvis_rotation
+    observation_joint_vel_keys:
+      - ankle_angle_l
+      - ankle_angle_r
+      - hip_flexion_l
+      - hip_flexion_r
+      - knee_angle_l
+      - knee_angle_r
+      - pelvis_tilt
+      - pelvis_tx
+      - pelvis_ty
+      # New
+      - mtp_angle_l
+      - mtp_angle_r
+      - hip_adduction_l
+      - hip_adduction_r
+      - hip_rotation_l
+      - hip_rotation_r
+      - pelvis_tz
+      - pelvis_list
+      - pelvis_rotation
+    observation_sensor_keys:
+      - r_foot
+      - l_foot
+      - r_toes
+      - l_toes
+      # New
+      - r_knee_sensor
+      - l_knee_sensor
+      - r_hip_sensor
+      - l_hip_sensor
+      - r_ankle_sensor
+      - l_ankle_sensor
+      - r_mtp_sensor
+      - l_mtp_sensor
+      # Muscle tendon states (velocity [m/s])
+      # Right leg
+      - abd_r_vel
+      - add_r_vel
+      - hamstrings_r_vel
+      - bifemsh_r_vel
+      - edl_r_vel
+      - fdl_r_vel
+      - glutmax_r_vel
+      - iliopsoas_r_vel
+      - rectfem_r_vel
+      - vasti_r_vel
+      - gastroc_r_vel
+      - soleus_r_vel
+      - tibant_r_vel
+      # Left leg
+      - abd_l_vel
+      - add_l_vel
+      - hamstrings_l_vel
+      - bifemsh_l_vel
+      - edl_l_vel
+      - fdl_l_vel
+      - glutmax_l_vel
+      - iliopsoas_l_vel
+      - rectfem_l_vel
+      - vasti_l_vel
+      - gastroc_l_vel
+      - soleus_l_vel
+      - tibant_l_vel
+    joint_limit_sensor_keys:
+      - r_knee_sensor
+      - l_knee_sensor
+      - r_hip_sensor
+      - l_hip_sensor
+      - r_ankle_sensor
+      - l_ankle_sensor
+      - r_mtp_sensor
+      - l_mtp_sensor
+    terrain_type: flat
+    reward_keys_and_weights:
+      forward_reward: 2.0
+      muscle_activation_penalty: 0.1
+      muscle_activation_diff_penalty: 0.1
+      footstep_delta_time: 0.0
+      average_velocity_per_step: 0.0
+      muscle_activation_penalty_per_step: 0.01
+      joint_constraint_force_penalty: 0.1
+      foot_force_penalty: 0.1
+    custom_max_episode_steps: 1000
+    
+
