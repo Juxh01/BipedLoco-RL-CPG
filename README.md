@@ -1,15 +1,19 @@
+# Disclaimer
+**This project is still on my to-do list, and neither the work is finished nor does it reflect my standards of software engineering**
+
+
 # BipedLoco-RL-CPG
 
 🦿 **Empirical Evaluation of Biped Locomotion with Central Pattern Generators and Reinforcement Learning**
 
 ## 📝 Overview
 
-This project investigates the integration of Central Pattern Generators (CPGs) with Reinforcement Learning algorithms for bipedal locomotion control. We compare the performance of RL agents with and without CPG integration using the dm_control environment suite.
+This project investigates the integration of Central Pattern Generators (CPGs) with Reinforcement Learning algorithms for bipedal locomotion control. We compare the performance of RL agents with and without CPG integration using the myoSuit package.
 
 **Key Features:**
 - CPG-enhanced RL agents for biped locomotion
 - Comparative analysis of traditional RL vs. CPG-RL approaches
-- Integration with dm_control physics simulation
+- Implementation of a hierarchical CPG network based on differential equations as a bioinspired prior in improve sample efficiency
 - Comprehensive evaluation metrics using rliable
 
 ## 🚀 Quick Start
