@@ -1,5 +1,5 @@
 # Disclaimer
-**This project is still on my to-do list, and neither the work is finished nor does it reflect my standards of software engineering**
+**This project is still on our to-do list, and neither the work is finished nor does it reflect our standards of software engineering**
 
 
 # BipedLoco-RL-CPG
@@ -13,7 +13,7 @@ This project investigates the integration of Central Pattern Generators (CPGs) w
 **Key Features:**
 - CPG-enhanced RL agents for biped locomotion
 - Comparative analysis of traditional RL vs. CPG-RL approaches
-- Implementation of a hierarchical CPG network based on differential equations as a bioinspired prior in improve sample efficiency
+- Implementation of a hierarchical CPG network based on differential equations as a bioinspired prior to improve sample efficiency
 - Comprehensive evaluation metrics using rliable
 
 # Quick Start
